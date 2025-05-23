@@ -1,0 +1,132 @@
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100vh;
+  font-size: 14px;
+}
+
+.main-container {
+  display: grid;
+  height: 100vh;
+  grid-template-rows: min-content min-content auto min-content;
+  grid-template-areas:
+    "container-header"
+    "container-spinner"
+    "container-main"
+    "container-footer";
+
+  &>header {
+    grid-area: container-header;
+    padding: 0.4rem;
+  }
+
+  &>main.container {
+    grid-area: container-main;
+    position: relative;
+    height: 100%;
+    padding: 0.4rem;
+    overflow: auto;
+    overflow-y: auto;
+  }
+
+  &>footer {
+    grid-area: container-footer;
+    background-color: var(--surface-50);
+    padding: 0.4rem;
+    color: var(--text-color);
+    bottom: 0;
+    z-index: 1;
+    width: 100%;
+  }
+}
+
+.p-card-body,
+.p-card-content,
+.p-card-footer {
+  padding-top: 0 !important;
+}
+
+.p-checkbox>label {
+  user-select: none;
+  cursor: pointer;
+}
+
+
+.p-datatable {
+  .p-datatable-wrapper[style*="max-height"] {
+    height: 100vh;
+  }
+
+  .p-datatable-header {
+    /* padding: 1rem 1rem; */
+    padding: 0;
+  }
+
+  .p-paginator {
+    /* padding: 0.5rem 1rem; */
+    padding: 0;
+  }
+}
+
+button.p-button-icon-only.p-button-rounded {
+  height: 2.2rem;
+  width: 2.2rem;
+}
+
+.p-panel .p-panel-header,
+.p-panel .p-panel-content,
+.p-panel .p-panel-footer {
+  padding: 0.6rem !important;
+}
+
+.p-toast {
+  z-index: 100001;
+}
+
+.nowrap {
+  text-wrap: nowrap;
+}
+
+.p-inputtext[readonly]:enabled:focus,
+.p-inputtext[readonly]:enabled:hover {
+  border-color: rgba(117, 117, 117, 0.5) !important;
+}
+
+.p-autocomplete .p-autocomplete-multiple-container .p-autocomplete-token {
+  margin-right: 0 !important;
+}
+
+.p-datatable.p-datatable-gridlines .p-datatable-scrollable-table>.p-datatable-thead {
+  top: 0px !important;
+}
+
+.bg-transparent {
+  background-color: transparent !important;
+}
+
+.p-dialog .p-dialog-content {
+  padding: 0 1.5rem 1.5rem 1.5rem;
+}
+
+.p-tag {
+  font-size: unset;
+}
+
+.p-menubar .p-menuitem>.p-menuitem-content .p-menuitem-link {
+  padding: 0.5rem 1rem;
+}
+
+
+
+@layer primereact {
+  .p-tabview-panels {
+    padding: 0rem !important;
+    flex-grow: 1;
+  }
+
+  .p-tabview-panels .p-tabview-panel {
+    flex-grow: 1;
+    height: 100%; 
+  }
+}
