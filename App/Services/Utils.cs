@@ -25,16 +25,15 @@ public class Utils
 
     public static bool IsIdentityColumnName(ColumnInfo column)
     {
-        var colName = column.ColumnName.ToLower();
-        var colNameSnake = ToSnakeCase(column.ColumnName);
+        var colNameSnake = ToSnakeCase(column.Table);
         var names = new[] {
             $"id",
-            $"id{colName}",
-            $"{colName}id",
+            $"id{column.Table}",
+            $"{column.Table}id",
             $"id_{colNameSnake}",
             $"{colNameSnake}_id"
         };
-        return names.Contains(colName) && column.IsPK;
+        return names.Contains(column.ColumnName, StringComparer.InvariantCultureIgnoreCase) && column.IsPK;
     }
 
     public static string ToSnakeCase(string text)

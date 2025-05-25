@@ -41,12 +41,40 @@ export function resetStore(url: string, method: string, cacheKey: string) {
     storeCache.delete(cacheKey);
 }
 
+export function storeEntryPointCache<U extends Url, M extends Method<U>>(url: U, method: M) {
+    function getOrCreate(cacheKey?: string) {
+        const key = `${url}:${method}:${cacheKey}`;
+        if (key && storeCache.has(key)) {
+            return storeCache.get(key) as typeof item;
+        }
+
+        const entryPoint = api.entryPoint(url, method)
+        const store = createStoreFetch(entryPoint.invoke)
+        const item = {
+            types: entryPoint.types,
+            store,
+            getState: store.getState,
+            use: () => useStore(store)
+        }
+
+        if (key) {
+            storeCache.set(key, item)
+        }
+
+        return item
+    }
+
+    return {
+        getOrCreate
+    }
+}
+
 export function storeEntryPointMemo<U extends Url, M extends Method<U>>(url: U, method: M) {
     return function createStore(cacheKey?: string) {
-        cacheKey = `${url}:${method}:${cacheKey}`;
         return useMemo(() => {
-            if (cacheKey && storeCache.has(cacheKey)) {
-                return storeCache.get(cacheKey) as typeof item;
+            const key = `${url}:${method}:${cacheKey}`;
+            if (key && storeCache.has(key)) {
+                return storeCache.get(key) as typeof item;
             }
 
             const entryPoint = api.entryPoint(url, method)
@@ -58,8 +86,8 @@ export function storeEntryPointMemo<U extends Url, M extends Method<U>>(url: U, 
                 use: () => useStore(store)
             }
 
-            if (cacheKey) {
-                storeCache.set(cacheKey, item)
+            if (key) {
+                storeCache.set(key, item)
             }
 
             return item

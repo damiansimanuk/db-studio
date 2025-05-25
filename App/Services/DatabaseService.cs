@@ -22,6 +22,7 @@ public class DatabaseService
 
         ApiRepository.DefineConnection("Rigel", configuration.GetConnectionString("Rigel")).Wait();
         ApiRepository.DefineConnection("Atlasbooks", configuration.GetConnectionString("Atlasbooks")).Wait();
+        ApiRepository.DefineConnection("TNAF4PRDDB", configuration.GetConnectionString("TNAF4PRDDB")).Wait();
         _connections = ApiRepository.GetConnections().Result;
     }
 

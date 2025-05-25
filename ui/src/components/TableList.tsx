@@ -8,6 +8,7 @@ import { Button } from "primereact/button";
 import { DefineRecordDialog } from "./define-record/DefineRecordDialog";
 import type { RecordData } from "./define-record/DefineRecord";
 import { ConfigTableDialog } from "./config-table/ConfigTableDialog";
+import { FkValue } from "./FkValue";
 
 const paginationTableStore = storeEntryPointMemo("/api/Database/tablePaginationRecords", "get");
 
@@ -100,7 +101,13 @@ export function TableList({
                         ? <Column
                             header={column.columnName}
                             className="nowrap p-1 px-2"
-                            field={column.columnName}
+                            body={(row) => <FkValue
+                                connectionName={connectionName}
+                                schemaName={column.schemaFK}
+                                tableName={column.tableFK}
+                                value={row?.[column.columnName]}
+                                visited={[]}
+                            />}
                         />
                         : <Column
                             header={column.columnName}

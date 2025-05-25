@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 
 const connections = [
     "Rigel",
-    "DefaultConnection",
+    "TNAF4PRDDB",
     "Atlasbooks",
 ]
 

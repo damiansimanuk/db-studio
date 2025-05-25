@@ -5,12 +5,9 @@ import { InputText } from "primereact/inputtext"
 import { InputNumber } from "primereact/inputnumber"
 import { Calendar } from "primereact/calendar"
 import { classNames } from "primereact/utils"
-import { Dropdown } from "primereact/dropdown"
-import { useEffect, useState } from "react"
-import { DefineRecordDialog } from "./DefineRecordDialog"
-import { Button } from "primereact/button"
+import { useEffect } from "react"
 import type { RecordData } from "./DefineRecord"
-import { useTable } from "../../core/api/Shared"
+import { FkSelect } from "./FkSelect"
 
 const getInputType = (dataType: string) => {
     const type = dataType?.toLowerCase() || '';
@@ -51,86 +48,6 @@ const getValidationRules = (column: typeof databaseStructureStore.types.result[0
     return rules;
 };
 
-
-const FkSelect = ({
-    connectionName,
-    column,
-    field,
-    fieldState,
-    parentRecordData,
-}: {
-    connectionName: string;
-    column: typeof databaseStructureStore.types.result[0]['columns'][0];
-    field: any;
-    fieldState: any;
-    parentRecordData: RecordData;
-}) => {
-    const [recordData, setRecordData] = useState<RecordData>(null);
-    const table = useTable(connectionName, column.schemaFK, column.tableFK, "FkSelect_");
-
-    const getAndUpdateItem = (itemId: any) => {
-        field.onChange(itemId)
-
-        let item = parentRecordData.dependencies.find(e => e.parentColumn === column.columnName)
-
-        if (!item) {
-            item = {
-                tableId: table.struct.tableId,
-                parentColumn: column.columnName,
-                columns: {},
-                dependencies: []
-            }
-            parentRecordData.dependencies.push(item)
-        }
-
-        const record = table.getRecord(itemId)
-        Object.assign(item, { columns: record })
-
-        return item
-    }
-
-    const configRecord = () => {
-        let item = getAndUpdateItem(field.value)
-        setRecordData(item)
-    }
-
-    const onCloseDialog = () => {
-        setRecordData(null)
-    }
-
-    return (
-        <>
-            <DefineRecordDialog
-                connectionName={connectionName}
-                schemaName={table.struct.schema}
-                tableName={table.struct.table}
-                recordData={recordData}
-                onSuccess={() => onCloseDialog()}
-                onHide={() => onCloseDialog()}
-                onError={() => onCloseDialog()}
-            />
-            <div className="p-inputgroup flex-1">
-                <Dropdown
-                    value={field.value}
-                    onChange={(e) => getAndUpdateItem(e.value)}
-                    className={classNames('w-full', { 'p-invalid': fieldState.error })}
-                    options={table?.items}
-                    optionLabel="__repr"
-                    optionValue="__id"
-                    placeholder="Select a item"
-                    showClear
-                    appendTo={document.body}
-                />
-                <Button
-                    icon="pi pi-pencil"
-                    className="p-button-success"
-                    type="button"
-                    onClick={() => configRecord()} />
-            </div>
-
-        </>
-    );
-};
 
 export const RenderFormField = ({
     connectionName,

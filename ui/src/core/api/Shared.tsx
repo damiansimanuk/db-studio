@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { createStoreEntryPoint, storeEntryPointMemo } from "./Store";
+import { createStoreEntryPoint, storeEntryPointCache } from "./Store";
 
 export const databaseStructureStore = createStoreEntryPoint("/api/Database/structure", "get");
-export const paginationTableStore = storeEntryPointMemo("/api/Database/tablePaginationRecords", "get");
+export const paginationTableStore = storeEntryPointCache("/api/Database/tablePaginationRecords", "get");
 
 export function setDatabaseStructure(connectionName: string) {
     return databaseStructureStore.getState().setOptions({ query: { connectionName } })
@@ -36,15 +36,15 @@ export function useTableStructure2(connectionName: string, tableId: number) {
 }
 
 export function useTable(connectionName: string, schema: string, table: string, prefix = "", perPage = 1000, visited: number[] = []) {
-    const rows = paginationTableStore(`${prefix}${connectionName}:${schema}:${table}`).use();
+    const rows = paginationTableStore.getOrCreate(`${prefix}${connectionName}:${schema}:${table}`).use();
     const struct = useTableStructure(connectionName, schema, table);
-    const [dependencies, setDependencies] = useState<Array<{ connectionName: string, schema: string, table: string }>>([]);
+    const [dependencies, setDependencies] = useState<typeof struct.columns>([]);
 
     useEffect(() => {
         if (struct?.tableId && !visited.includes(struct.tableId)) {
             visited.push(struct.tableId);
-            const deps = struct.columns.filter(c => c.tableFK);
-            setDependencies(() => deps.map(c => ({ connectionName, schema: c.schemaFK, table: c.tableFK })));
+            const deps = struct.columns.filter(c => c.isFK && !!c.tableFK);
+            setDependencies(deps);
         }
     }, [struct?.tableId]);
 
