@@ -99,14 +99,13 @@ export function TableList({
 
                     {struct?.columns?.map((column) => (column.isFK
                         ? <Column
-                            header={column.columnName}
+                            header={column.columnName.replace(/_?id$/i, "").replace(/^_?id/i, "")}
                             className="nowrap p-1 px-2"
                             body={(row) => <FkValue
                                 connectionName={connectionName}
                                 schemaName={column.schemaFK}
                                 tableName={column.tableFK}
                                 value={row?.[column.columnName]}
-                                visited={[]}
                             />}
                         />
                         : <Column

@@ -128,7 +128,7 @@ export const RenderFormField = ({
                                 htmlFor={fieldName}
                                 className={classNames('block font-medium')}
                             >
-                                {fieldName}
+                                {column.isFK ? column.columnName.replace(/_?id$/i, "").replace(/^_?id/i, "") : column.columnName}
                                 {isRequired && <span className="ml-1">*</span>}
                             </label>
                         </span>

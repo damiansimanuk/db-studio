@@ -9,7 +9,7 @@ export function setDatabaseStructure(connectionName: string) {
 }
 
 export function useTableStructure(connectionName: string, schema: string, table: string) {
-    const struct = databaseStructureStore.use();
+    const struct = databaseStructureStore.getState();
 
     useEffect(() => {
         struct.initialize({ query: { connectionName } })
@@ -81,3 +81,6 @@ export function useTable(connectionName: string, schema: string, table: string, 
         };
     }, [rows.data, rows.data?.items, rows.isLoading, rows.done, struct, dependencies]);
 }
+
+
+

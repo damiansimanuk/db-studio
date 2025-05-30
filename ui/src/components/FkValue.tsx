@@ -1,47 +1,38 @@
-import { useTable } from "../core/api/Shared";
+import type { TRepresentation } from "../core/hooks/getTableRepresentation";
+import { useTableRepresentation } from "../core/hooks/useTableRepresentation";
 
+
+function plainRepresentation(representation: TRepresentation, separator = " ", maxDepth = 2, deepSeparator = ", ", showTableIdentifier = true, useTableIdentifier = false): string {
+    if (maxDepth <= 0) {
+        return showTableIdentifier && useTableIdentifier
+            ? representation.tableName + ":" + representation.identifier
+            : representation.identifier;
+    }
+    const prefix = useTableIdentifier ? representation.tableName + "(" : "";
+    const suffix = useTableIdentifier ? ")" : "";
+    const res = representation?.representation?.join(deepSeparator);
+    const depRes = representation?.dependencies?.flatMap(d => plainRepresentation(d, deepSeparator, maxDepth - 1, deepSeparator, showTableIdentifier, showTableIdentifier));
+    return prefix + [...depRes, res].join(separator) + suffix;
+}
 
 export function FkValue({
     connectionName,
     schemaName,
     tableName,
     value,
-    visited,
 }: {
     connectionName: string;
     schemaName: string;
     tableName: string;
     value: any;
-    visited: number[]
 }) {
-    const table = useTable(connectionName, schemaName, tableName, "Cache_", 10000, visited);
-    const ukcolumns = table.struct?.columns?.filter(c => c.isUK);
-    const row = table.items?.find(e => e.__id == value);
+    const { representation, isLoading } = useTableRepresentation({ connectionName, schemaName, tableName, recordId: value });
 
-    if (value == null || ukcolumns == null) {
-        return <span></span>
+    if (isLoading) {
+        return <span>...</span>
     }
 
-    if (ukcolumns.length == 1 && (ukcolumns[0].isPK)) {
-        return <span>{value}</span>
-    }
+    let representationValue = plainRepresentation(representation, " ", 2, ", ", true);
 
-    return ukcolumns.filter(c => !c.isIdentity).map((ukcol, i) => (
-        ukcol.isFK ? <>
-            <FkValue
-                key={i}
-                connectionName={connectionName}
-                schemaName={ukcol.schemaFK}
-                tableName={ukcol.tableFK}
-                value={row?.[ukcol.columnName]}
-                visited={visited}
-            />
-        </> : <>
-            <span
-                className="pr-2"
-                key={i}>
-                {(row?.[ukcol.columnName] as any)}
-            </span>
-        </>
-    ))
+    return <span>{representationValue}</span>
 }

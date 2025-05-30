@@ -75,7 +75,6 @@ export const FkSelect = ({
                         schemaName={column.schemaFK}
                         tableName={column.tableFK}
                         value={field.value}
-                        visited={[]}
                     />}
                     itemTemplate={(item) => <>
                         <FkValue
@@ -83,7 +82,6 @@ export const FkSelect = ({
                             schemaName={column.schemaFK}
                             tableName={column.tableFK}
                             value={item.__id}
-                            visited={[]}
                         />
                     </>}
                     appendTo={document.body} />

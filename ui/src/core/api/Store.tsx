@@ -107,7 +107,6 @@ export function createStoreFetch<To, Tr>(fetchFunc: ((o: To) => Promise<Tr>)) {
             set({ isLoading: true, })
             return fetchFunc(options)
                 .then(r => {
-                    console.debug('fetchFunc ok', options, r)
                     lastDataTime = Date.now()
                     set({ data: r, errors: undefined, })
                     return r
@@ -151,7 +150,6 @@ export function createStoreFetch<To, Tr>(fetchFunc: ((o: To) => Promise<Tr>)) {
 
     store.subscribe((state, prevState) => {
         if (state?.options && state?.options !== prevState?.options) {
-            console.debug("store.fetch options", state.options)
             state.fetch(state.options)
         }
     })
