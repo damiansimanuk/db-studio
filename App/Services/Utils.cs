@@ -56,13 +56,13 @@ public class Utils
             (!column.IsIdentity && column.ColumnName.Equals($"Id{column.TableFK}", StringComparison.InvariantCultureIgnoreCase) && column.IsPK));
     }
 
-    public static List<ColumnInfo> GetUniqueKeysColumns(TableInfo tableInfo)
+    public static List<ColumnInfo> GetIdentifierColumns(TableInfo tableInfo)
     {
-        var ukColumns = tableInfo.Columns.Where(c => FilterParametersOnly(c) && c.IsUK).ToList();
-        if (ukColumns?.Any() != true && IsEntity(tableInfo.Columns))
-            ukColumns = tableInfo.Columns.Where(c => c.ColumnName == "Code").ToList();
+        var ukColumns = tableInfo.Columns.Where(c => FilterParametersOnly(c) && ((c.IsPK && !c.IsIdentity) || c.IsUK)).ToList();
         if (ukColumns?.Any() != true)
             ukColumns = tableInfo.Columns.Where(c => c.IsUK).ToList();
+        if (ukColumns?.Any() != true && IsEntity(tableInfo.Columns))
+            ukColumns = tableInfo.Columns.Where(c => c.ColumnName == "Code").ToList();
         if (ukColumns?.Any() != true)
             ukColumns = tableInfo.Columns.Where(c => c.IsIdentity || c.IsExtension).ToList();
 
@@ -126,7 +126,7 @@ public class Utils
 
     public static List<string> GetRepresentationColumns(TableInfo tableInfo)
     {
-        var ukColumns = GetUniqueKeysColumns(tableInfo);
+        var ukColumns = GetIdentifierColumns(tableInfo);
         return ukColumns.Select(c => c.ColumnName).ToList();
     }
 

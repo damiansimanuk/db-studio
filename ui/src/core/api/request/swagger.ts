@@ -390,13 +390,13 @@ export interface components {
             tableId?: number;
             parentColumn?: string | null;
             columns?: {
-                [key: string]: unknown;
+                [key: string]: string;
             } | null;
             dependencies?: components["schemas"]["RecordData"][] | null;
         };
         StringObjectIDictionaryPagedResult: {
             items?: {
-                [key: string]: unknown;
+                [key: string]: string;
             }[] | null;
             /** Format: int32 */
             totalCount?: number;

@@ -41,7 +41,7 @@ public class DatabaseController : ControllerBase
     }
 
     [HttpGet("tablePaginationRecords")]
-    public Task<PagedResult<IDictionary<string, object>>> GetTableRows(
+    public Task<PagedResult<Dictionary<string, string?>>> GetTableRows(
         string connectionName = "DefaultConnection",
         string schema = "Config",
         string table = "Config",
@@ -52,7 +52,7 @@ public class DatabaseController : ControllerBase
     }
 
     [HttpGet("tableRecord")]
-    public Task<IDictionary<string, object>> GetRecord(
+    public IDictionary<string, string>? GetRecord(
         string connectionName,
         string schema,
         string table,

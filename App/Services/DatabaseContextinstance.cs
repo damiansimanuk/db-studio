@@ -8,7 +8,8 @@ namespace DbStudio.Services;
 
 public class DatabaseContextinstance
 {
-
+    const string prefixCN = "[";
+    const string sufixCN = "]";
     private readonly string _connectionString;
     private Lazy<List<TableInfo>> tableInfosLazy;
     private readonly string _connectionName;
@@ -41,39 +42,28 @@ public class DatabaseContextinstance
     {
         var valueSql = Utils.GetValueSql(column, value);
         var condition = isCondition && valueSql == "NULL" ? "IS" : "=";
-        return $"{prefix ?? ""}{column.ColumnName} {condition} {valueSql}";
+        return $"{prefix ?? ""}{prefixCN}{column.ColumnName}{sufixCN} {condition} {valueSql}";
     }
 
     public List<string> GetAssignationValueSql(List<ColumnInfo> columns, RecordData recordData, string? prefix = null, bool isCondition = false)
     {
         return columns
-            .Select(c => new
+            .Select(c =>
             {
-                Column = c,
-                Value = recordData.Columns.GetValueOrDefault(c.ColumnName),
-                Dep = recordData.Dependencies.FirstOrDefault(d => d.ParentColumn == c.ColumnName),
-            })
-            .Select(c => GetAssignationValueSql(c.Column, c.Column.IsFK && c.Dep != null
-                ? $"({SelectIdentity(c.Dep)})"
-                : c.Value?.ToString(), prefix, isCondition))
-            .ToList();
-    }
+                var rowValue = recordData.Columns.GetValueOrDefault(c.ColumnName);
+                var Dep = recordData.Dependencies.FirstOrDefault(d => d.ParentColumn == c.ColumnName);
+                var represetnationValue = c.IsFK && Dep != null ? $"({SelectIdentity(Dep)})" : rowValue?.ToString();
 
-    public string InsertColumnSql(List<ColumnInfo> columns)
-    {
-        return string.Join(", ", columns.Select(c => $"{c.ColumnName}"));
-    }
-
-    public string InsertValueSql(List<ColumnInfo> columns)
-    {
-        return string.Join(", ", columns.Select(c => $"{c.ColumnName}"));
+                return GetAssignationValueSql(c, represetnationValue, prefix, isCondition);
+            }).ToList();
     }
 
     public string SelectIdentity(RecordData recordData)
     {
         var tableInfo = GetTableInfo(recordData.TableId);
         var identityColumn = Utils.GetIdentityColumn(tableInfo)?.ColumnName;
-        var identifierColumns = tableInfo.Columns.Where(c => (c.IsPK && !c.IsIdentity) || c.IsUK).ToList();
+        //var identifierColumns = tableInfo.Columns.Where(c => (c.IsPK && !c.IsIdentity) || c.IsUK).ToList();
+        var identifierColumns = Utils.GetIdentifierColumns(tableInfo);
         var conditionColumns = GetAssignationValueSql(identifierColumns, recordData, null, true);
 
         var sql = $"""
@@ -83,11 +73,41 @@ public class DatabaseContextinstance
         return sql;
     }
 
+    public RecordData? GetOriginalData(RecordData recordData)
+    {
+        var tableInfo = GetTableInfo(recordData.TableId);
+
+        var identityColumn = Utils.GetIdentityColumn(tableInfo)?.ColumnName;
+        if (identityColumn == null)
+            return null;
+
+        var recordId = recordData.Columns.GetValueOrDefault(identityColumn);
+        if (recordId == null)
+            return null;
+
+        var columns = GetRecord(tableInfo.Schema, tableInfo.Table, recordId);
+        if (columns == null)
+            return null;
+
+        var dependencies = recordData.Dependencies.Select(d => GetOriginalData(d)).Where(d => d != null).ToList();
+
+        var record = new RecordData
+        {
+            TableId = recordData.TableId,
+            ParentColumn = recordData.ParentColumn,
+            Columns = columns,
+            Dependencies = dependencies!,
+        };
+
+        return record;
+    }
+
+
     public void GetMergeSql(RecordData recordData, List<string> sqls)
     {
         var tableInfo = GetTableInfo(recordData.TableId);
         var selectColumnsSql = GetAssignationValueSql(tableInfo.Columns, recordData);
-        var ukColumns = Utils.GetUniqueKeysColumns(tableInfo);
+        var identifierColumns = Utils.GetIdentifierColumns(tableInfo);
         var updatableColumns = Utils.GetUpdateableColumns(tableInfo);
         var insertableColumns = Utils.GetInsertableColumns(tableInfo);
 
@@ -98,17 +118,17 @@ public class DatabaseContextinstance
         USING (SELECT
         {"\t" + string.Join(",\n\t", selectColumnsSql)}
         ) AS S 
-        ON {string.Join(" AND ", ukColumns.Select(c => $"T.{c.ColumnName} = S.{c.ColumnName}"))}
-        WHEN MATCHED THEN UPDATE SET {string.Join(", ", updatableColumns.Select(c => $"T.{c.ColumnName} = S.{c.ColumnName}"))}
-        WHEN NOT MATCHED THEN INSERT ({string.Join(", ", insertableColumns.Select(c => c.ColumnName))})
-        VALUES ({string.Join(", ", insertableColumns.Select(c => $"S.{c.ColumnName}"))})
+        ON {string.Join(" AND ", identifierColumns.Select(c => $"T.{prefixCN}{c.ColumnName}{sufixCN} = S.{prefixCN}{c.ColumnName}{sufixCN}"))}
+        WHEN MATCHED THEN UPDATE SET {string.Join(", ", updatableColumns.Select(c => $"T.{prefixCN}{c.ColumnName}{sufixCN} = S.{prefixCN}{c.ColumnName}{sufixCN}"))}
+        WHEN NOT MATCHED THEN INSERT ({string.Join(", ", insertableColumns.Select(c => $"{prefixCN}{c.ColumnName}{sufixCN}"))})
+        VALUES ({string.Join(", ", insertableColumns.Select(c => $"S.{prefixCN}{c.ColumnName}{sufixCN}"))})
         ;
         """;
 
         sqls.Add(sql);
     }
 
-    public async Task<PagedResult<IDictionary<string, object>>> GetTableRows(
+    public async Task<PagedResult<Dictionary<string, string?>>> GetTableRows(
         string schema,
         string table,
         int page = 1,
@@ -121,12 +141,14 @@ public class DatabaseContextinstance
         return await ApiRepository.GetTableRows(_connectionString, schema, table, identityColumn?.ColumnName, representationColumns, page, perPage);
     }
 
-    public Task<IDictionary<string, object>> GetRecord(string schema, string table, string recordId)
+    public Dictionary<string, string?>? GetRecord(string schema, string table, string recordId)
     {
         var tableInfo = GetTableInfo(schema, table);
         var identityColumn = Utils.GetIdentityColumn(tableInfo) ?? throw new Exception("Identity column not found");
         if (string.IsNullOrWhiteSpace(recordId)) throw new Exception("Invalid recordId");
 
-        return ApiRepository.GetRecord(_connectionString, schema, table, identityColumn.ColumnName, recordId);
+        var result = ApiRepository.GetRecord(_connectionString, schema, table, identityColumn.ColumnName, recordId).Result;
+
+        return result;
     }
 }

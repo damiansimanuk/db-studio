@@ -207,7 +207,7 @@ public class ApiRepository
         await dbConnection.ExecuteAsync(query);
     }
 
-    public static async Task<PagedResult<IDictionary<string, object>>> GetTableRows(
+    public static async Task<PagedResult<Dictionary<string, string?>>> GetTableRows(
         string connectionString,
         string schema,
         string table,
@@ -237,11 +237,12 @@ public class ApiRepository
 
         var items = (await _dbConnection.QueryAsync(query))
             .Cast<IDictionary<string, object>>()
+            .Select(e => e.ToDictionary(k => k.Key, v => v.Value?.ToString()))
             .ToList();
 
         var totalCount = await _dbConnection.ExecuteScalarAsync<int>(countQuery);
 
-        return new PagedResult<IDictionary<string, object>>
+        return new PagedResult<Dictionary<string, string?>>
         {
             Items = items,
             TotalCount = totalCount,
@@ -250,7 +251,7 @@ public class ApiRepository
         };
     }
 
-    public static async Task<IDictionary<string, object>> GetRecord(
+    public static async Task<Dictionary<string, string?>?> GetRecord(
         string connectionString,
         string schema,
         string table,
@@ -266,9 +267,10 @@ public class ApiRepository
         """;
 
         var items = (await _dbConnection.QueryAsync(query))
-            .Cast<IDictionary<string, object>>();
+            .Cast<IDictionary<string, object>>()
+            .FirstOrDefault();
 
-        return items.FirstOrDefault();
+        return items?.ToDictionary(k => k.Key, v => v.Value?.ToString());
     }
 
     public int? ExecuteScript(string connectionString, string script)

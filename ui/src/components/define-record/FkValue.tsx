@@ -1,5 +1,5 @@
-import type { TRepresentation } from "../core/hooks/getTableRepresentation";
-import { useTableRepresentation } from "../core/hooks/useTableRepresentation";
+import type { TRepresentation } from "../../core/hooks/getTableRepresentation";
+import { useTableRepresentation } from "../../core/hooks/useTableRepresentation";
 
 
 function plainRepresentation(representation: TRepresentation, separator = " ", maxDepth = 2, deepSeparator = ", ", showTableIdentifier = true, useTableIdentifier = false): string {

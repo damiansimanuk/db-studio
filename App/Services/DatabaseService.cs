@@ -49,12 +49,22 @@ public class DatabaseService
         string connectionName,
         RecordData recordData)
     {
-        var sqls = new List<string>();
-        GetProcessor(connectionName).GetMergeSql(recordData, sqls);
-        return string.Join("\n\n", sqls);
+        var processor = GetProcessor(connectionName);
+
+        var originalSql = new List<string>();
+        var originalData = processor.GetOriginalData(recordData);
+        if (originalData != null)
+        {
+            processor.GetMergeSql(originalData, originalSql);
+        }
+
+        var newSql = new List<string>();
+        processor.GetMergeSql(recordData, newSql);
+
+        return string.Join("\n\n", originalSql) + "\n\n\n\n" + string.Join("\n\n", newSql);
     }
 
-    public Task<PagedResult<IDictionary<string, object>>> GetTableRows(
+    public Task<PagedResult<Dictionary<string, string?>>> GetTableRows(
         string connectionName,
         string schema,
         string table,
@@ -64,7 +74,7 @@ public class DatabaseService
         return GetProcessor(connectionName).GetTableRows(schema, table, page, perPage);
     }
 
-    public Task<IDictionary<string, object>> GetRecord(
+    public Dictionary<string, string?>? GetRecord(
         string connectionName,
         string schema,
         string table,

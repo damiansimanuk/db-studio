@@ -5,7 +5,7 @@ import { useState } from "react";
 import { databaseStructureStore, useTable } from "../../core/api/Shared";
 import type { RecordData } from "./DefineRecord";
 import { DefineRecordDialog } from "./DefineRecordDialog";
-import { FkValue } from "../FkValue";
+import { FkValue } from "./FkValue";
 
 export const FkSelect = ({
     connectionName, column, field, fieldState, parentRecordData

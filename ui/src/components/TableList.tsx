@@ -8,7 +8,7 @@ import { Button } from "primereact/button";
 import { DefineRecordDialog } from "./define-record/DefineRecordDialog";
 import type { RecordData } from "./define-record/DefineRecord";
 import { ConfigTableDialog } from "./config-table/ConfigTableDialog";
-import { FkValue } from "./FkValue";
+import { FkValue } from "./define-record/FkValue";
 
 const paginationTableStore = storeEntryPointMemo("/api/Database/tablePaginationRecords", "get");
 

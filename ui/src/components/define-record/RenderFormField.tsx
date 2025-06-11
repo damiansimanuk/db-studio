@@ -109,7 +109,8 @@ export const RenderFormField = ({
                                 ) : inputType === 'number' ? (
                                     <InputNumber
                                         id={fieldName}
-                                        value={field.value ?? ''}
+                                        value={field.value}
+                                        allowEmpty
                                         onValueChange={(e) => field.onChange(e.value)}
                                         className={classNames('w-full', { 'p-invalid': fieldState.error })}
                                         mode="decimal"
@@ -117,7 +118,7 @@ export const RenderFormField = ({
                                 ) : (
                                     <InputText
                                         id={fieldName}
-                                        value={field.value ?? ''}
+                                        value={field.value}
                                         onChange={field.onChange}
                                         className={classNames('w-full', { 'p-invalid': fieldState.error })}
                                         type={inputType}
