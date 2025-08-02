@@ -1,0 +1,26 @@
+--- original
++++ modified
+@@ -1,21 +1,21 @@
+  MERGE INTO [Delay].[Delay] AS T 
+  USING (SELECT
+  	[Id] = 1,
+- 	[LineId] = (SELECT Id FROM [GeneralSetting].[Line] WHERE [AreaId] = 1 AND [Name] = 'Mirobot2'),
++ 	[LineId] = (SELECT Id FROM [GeneralSetting].[Line] WHERE [AreaId] = 1 AND [Name] = 'Mirobot'),
+  	[MachineId] = (SELECT Id FROM [GeneralSetting].[Machine] WHERE [LineId] = 2 AND [Name] = 'asdf'),
+  	[Start] = '2024-03-10T00:01:17.0000000+00:00',
+  	[End] = '2024-03-10T13:03:14.0000000+00:00',
+- 	[DelayTypeId] = (SELECT Id FROM [Delay].[DelayType] WHERE [Name] = 'Delay'),
++ 	[DelayTypeId] = (SELECT Id FROM [Delay].[DelayType] WHERE [Name] = 'MicroDelay'),
+  	[AppRef] = 'RegisterWithTracking',
+  	[ShiftId] = 1,
+  	[CrewId] = 1,
+  	[ProcessId] = NULL,
+  	[GroupId] = NULL,
+  	[UpdatedAt] = sysdatetimeoffset(),
+  	[CreatedAt] = sysdatetimeoffset()
+  ) AS S 
+  ON T.[Id] = S.[Id]
+  WHEN MATCHED THEN UPDATE SET T.[LineId] = S.[LineId], T.[MachineId] = S.[MachineId], T.[Start] = S.[Start], T.[End] = S.[End], T.[DelayTypeId] = S.[DelayTypeId], T.[AppRef] = S.[AppRef], T.[ShiftId] = S.[ShiftId], T.[CrewId] = S.[CrewId], T.[ProcessId] = S.[ProcessId], T.[GroupId] = S.[GroupId], T.[UpdatedAt] = S.[UpdatedAt]
+  WHEN NOT MATCHED THEN INSERT ([LineId], [MachineId], [Start], [End], [DelayTypeId], [AppRef], [ShiftId], [CrewId], [ProcessId], [GroupId], [UpdatedAt], [CreatedAt])
+  VALUES (S.[LineId], S.[MachineId], S.[Start], S.[End], S.[DelayTypeId], S.[AppRef], S.[ShiftId], S.[CrewId], S.[ProcessId], S.[GroupId], S.[UpdatedAt], S.[CreatedAt])
+  ;

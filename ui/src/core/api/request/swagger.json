@@ -145,17 +145,17 @@
             "content": {
               "text/plain": {
                 "schema": {
-                  "type": "string"
+                  "$ref": "#/components/schemas/MergeSqlResponse"
                 }
               },
               "application/json": {
                 "schema": {
-                  "type": "string"
+                  "$ref": "#/components/schemas/MergeSqlResponse"
                 }
               },
               "text/json": {
                 "schema": {
-                  "type": "string"
+                  "$ref": "#/components/schemas/MergeSqlResponse"
                 }
               }
             }
@@ -218,17 +218,17 @@
             "content": {
               "text/plain": {
                 "schema": {
-                  "$ref": "#/components/schemas/StringObjectIDictionaryPagedResult"
+                  "$ref": "#/components/schemas/StringStringDictionaryPagedResult"
                 }
               },
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/StringObjectIDictionaryPagedResult"
+                  "$ref": "#/components/schemas/StringStringDictionaryPagedResult"
                 }
               },
               "text/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/StringObjectIDictionaryPagedResult"
+                  "$ref": "#/components/schemas/StringStringDictionaryPagedResult"
                 }
               }
             }
@@ -278,19 +278,25 @@
               "text/plain": {
                 "schema": {
                   "type": "object",
-                  "additionalProperties": { }
+                  "additionalProperties": {
+                    "type": "string"
+                  }
                 }
               },
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "additionalProperties": { }
+                  "additionalProperties": {
+                    "type": "string"
+                  }
                 }
               },
               "text/json": {
                 "schema": {
                   "type": "object",
-                  "additionalProperties": { }
+                  "additionalProperties": {
+                    "type": "string"
+                  }
                 }
               }
             }
@@ -577,9 +583,30 @@
         },
         "additionalProperties": false
       },
+      "MergeSqlResponse": {
+        "type": "object",
+        "properties": {
+          "originalSql": {
+            "type": "string",
+            "nullable": true
+          },
+          "newSql": {
+            "type": "string",
+            "nullable": true
+          },
+          "diffSql": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "RecordData": {
         "type": "object",
         "properties": {
+          "isEdition": {
+            "type": "boolean"
+          },
           "tableId": {
             "type": "integer",
             "format": "int32"
@@ -590,7 +617,10 @@
           },
           "columns": {
             "type": "object",
-            "additionalProperties": { },
+            "additionalProperties": {
+              "type": "string",
+              "nullable": true
+            },
             "nullable": true
           },
           "dependencies": {
@@ -603,14 +633,16 @@
         },
         "additionalProperties": false
       },
-      "StringObjectIDictionaryPagedResult": {
+      "StringStringDictionaryPagedResult": {
         "type": "object",
         "properties": {
           "items": {
             "type": "array",
             "items": {
               "type": "object",
-              "additionalProperties": { }
+              "additionalProperties": {
+                "type": "string"
+              }
             },
             "nullable": true
           },
@@ -618,11 +650,11 @@
             "type": "integer",
             "format": "int32"
           },
-          "pageNumber": {
+          "page": {
             "type": "integer",
             "format": "int32"
           },
-          "pageSize": {
+          "perPage": {
             "type": "integer",
             "format": "int32"
           },

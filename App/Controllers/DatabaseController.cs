@@ -32,12 +32,12 @@ public class DatabaseController : ControllerBase
     }
 
     [HttpPost("GetMergeSql")]
-    public ActionResult<string> GetMergeSql(
+    public ActionResult<MergeSqlResponse> GetMergeSql(
         string connectionName = "DefaultConnection",
         [FromBody] RecordData recordData = null!)
     {
-        var mergeSql = _databaseService.GetMergeSql(connectionName, recordData);
-        return mergeSql;
+        var res = _databaseService.GetMergeSql(connectionName, recordData);
+        return new MergeSqlResponse(res.originalSql, res.newSql, res.diffSql);
     }
 
     [HttpGet("tablePaginationRecords")]
@@ -83,3 +83,6 @@ public class DatabaseController : ControllerBase
         return _databaseService.DefineColumnConfig(connectionName, customColumnConfig);
     }
 }
+
+
+public record MergeSqlResponse(string OriginalSql, string NewSql, string DiffSql);

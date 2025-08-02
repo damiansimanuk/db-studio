@@ -3,7 +3,7 @@ import { Dropdown } from "primereact/dropdown";
 import { classNames } from "primereact/utils";
 import { useState } from "react";
 import { databaseStructureStore, useTable } from "../../core/api/Shared";
-import type { RecordData } from "./DefineRecord";
+import type { RecordData } from "./DefineRecordDialog";
 import { DefineRecordDialog } from "./DefineRecordDialog";
 import { FkValue } from "./FkValue";
 

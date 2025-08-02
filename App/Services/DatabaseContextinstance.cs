@@ -73,15 +73,19 @@ public class DatabaseContextinstance
         return sql;
     }
 
-    public RecordData? GetOriginalData(RecordData recordData)
+    public RecordData? GetOriginalData(RecordData recordData, string? recordId = null)
     {
         var tableInfo = GetTableInfo(recordData.TableId);
 
-        var identityColumn = Utils.GetIdentityColumn(tableInfo)?.ColumnName;
-        if (identityColumn == null)
-            return null;
+        if (recordId == null)
+        {
+            var identityColumn = Utils.GetIdentityColumn(tableInfo)?.ColumnName;
+            if (identityColumn == null)
+                return null;
 
-        var recordId = recordData.Columns.GetValueOrDefault(identityColumn);
+            recordId = recordData.Columns.GetValueOrDefault(identityColumn);
+        }
+
         if (recordId == null)
             return null;
 
@@ -89,12 +93,15 @@ public class DatabaseContextinstance
         if (columns == null)
             return null;
 
-        var dependencies = recordData.Dependencies.Select(d => GetOriginalData(d)).Where(d => d != null).ToList();
-
-        var record = new RecordData
+        var dependencies = recordData.Dependencies.Select(d =>
         {
-            TableId = recordData.TableId,
-            ParentColumn = recordData.ParentColumn,
+            return d.ParentColumn != null && columns.TryGetValue(d.ParentColumn, out var fkValue)
+                ? GetOriginalData(d, fkValue)
+                : GetOriginalData(d);
+        }).Where(d => d != null).ToList();
+
+        var record = recordData with
+        { 
             Columns = columns,
             Dependencies = dependencies!,
         };
@@ -113,10 +120,13 @@ public class DatabaseContextinstance
 
         recordData.Dependencies.ForEach(d => GetMergeSql(d, sqls));
 
+        if (!recordData.IsEdition)
+            return;
+
         var sql = $""" 
         MERGE INTO [{tableInfo.Schema}].[{tableInfo.Table}] AS T 
         USING (SELECT
-        {"\t" + string.Join(",\n\t", selectColumnsSql)}
+        {"    " + string.Join(",\n    ", selectColumnsSql)}
         ) AS S 
         ON {string.Join(" AND ", identifierColumns.Select(c => $"T.{prefixCN}{c.ColumnName}{sufixCN} = S.{prefixCN}{c.ColumnName}{sufixCN}"))}
         WHEN MATCHED THEN UPDATE SET {string.Join(", ", updatableColumns.Select(c => $"T.{prefixCN}{c.ColumnName}{sufixCN} = S.{prefixCN}{c.ColumnName}{sufixCN}"))}

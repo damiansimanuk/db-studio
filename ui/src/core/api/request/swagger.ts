@@ -116,9 +116,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": string;
-                        "application/json": string;
-                        "text/json": string;
+                        "text/plain": components["schemas"]["MergeSqlResponse"];
+                        "application/json": components["schemas"]["MergeSqlResponse"];
+                        "text/json": components["schemas"]["MergeSqlResponse"];
                     };
                 };
             };
@@ -157,9 +157,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["StringObjectIDictionaryPagedResult"];
-                        "application/json": components["schemas"]["StringObjectIDictionaryPagedResult"];
-                        "text/json": components["schemas"]["StringObjectIDictionaryPagedResult"];
+                        "text/plain": components["schemas"]["StringStringDictionaryPagedResult"];
+                        "application/json": components["schemas"]["StringStringDictionaryPagedResult"];
+                        "text/json": components["schemas"]["StringStringDictionaryPagedResult"];
                     };
                 };
             };
@@ -200,13 +200,13 @@ export interface paths {
                     };
                     content: {
                         "text/plain": {
-                            [key: string]: unknown;
+                            [key: string]: string;
                         };
                         "application/json": {
-                            [key: string]: unknown;
+                            [key: string]: string;
                         };
                         "text/json": {
-                            [key: string]: unknown;
+                            [key: string]: string;
                         };
                     };
                 };
@@ -385,16 +385,22 @@ export interface components {
             schemaFK?: string | null;
             tableFK?: string | null;
         };
+        MergeSqlResponse: {
+            originalSql?: string | null;
+            newSql?: string | null;
+            diffSql?: string | null;
+        };
         RecordData: {
+            isEdition?: boolean;
             /** Format: int32 */
             tableId?: number;
             parentColumn?: string | null;
             columns?: {
-                [key: string]: string;
+                [key: string]: string | null;
             } | null;
             dependencies?: components["schemas"]["RecordData"][] | null;
         };
-        StringObjectIDictionaryPagedResult: {
+        StringStringDictionaryPagedResult: {
             items?: {
                 [key: string]: string;
             }[] | null;

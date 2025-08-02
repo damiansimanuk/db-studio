@@ -6,7 +6,7 @@ import { InputNumber } from "primereact/inputnumber"
 import { Calendar } from "primereact/calendar"
 import { classNames } from "primereact/utils"
 import { useEffect } from "react"
-import type { RecordData } from "./DefineRecord"
+import type { RecordData } from "./DefineRecordDialog"
 import { FkSelect } from "./FkSelect"
 
 const getInputType = (dataType: string) => {

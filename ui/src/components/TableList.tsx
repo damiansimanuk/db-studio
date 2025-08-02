@@ -6,7 +6,7 @@ import { storeEntryPointMemo } from "../core/api/Store";
 import { useTable, useTableStructure } from "../core/api/Shared";
 import { Button } from "primereact/button";
 import { DefineRecordDialog } from "./define-record/DefineRecordDialog";
-import type { RecordData } from "./define-record/DefineRecord";
+import type { RecordData } from "./define-record/DefineRecordDialog";
 import { ConfigTableDialog } from "./config-table/ConfigTableDialog";
 import { FkValue } from "./define-record/FkValue";
 
@@ -75,7 +75,6 @@ export function TableList({
                 isRoot={true}
                 onSuccess={() => onCloseDialog(true)}
                 onHide={() => onCloseDialog(false)}
-                onError={() => onCloseDialog(false)}
             />
 
             <div>
