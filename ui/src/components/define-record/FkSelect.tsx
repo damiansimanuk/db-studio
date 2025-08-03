@@ -26,7 +26,8 @@ export const FkSelect = ({
 
         if (!item) {
             item = {
-                tableId: table.struct.tableId,
+                schema: table.struct.schema,
+                table: table.struct.table,
                 parentColumn: column.columnName,
                 columns: {},
                 dependencies: []

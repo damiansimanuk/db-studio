@@ -11,7 +11,7 @@ namespace DbStudio.Services;
 
 public class ApiRepository
 {
-    public static async Task<List<ColumnInfo>> GetColumns(string connectionString)
+    public static async Task<List<ColumnInfoRecord>> GetColumns(string connectionString)
     {
         var _dbConnection = new SqlConnection(connectionString);
 
@@ -68,7 +68,7 @@ public class ApiRepository
             left join sys.schemas fks on fks.schema_id = fkt.schema_id
         """;
 
-        var columns = await _dbConnection.QueryAsync<ColumnInfo>(columnsQuery);
+        var columns = await _dbConnection.QueryAsync<ColumnInfoRecord>(columnsQuery);
         return columns.ToList();
     }
 
@@ -110,7 +110,7 @@ public class ApiRepository
 
             tables.Add(new TableInfo
             {
-                TableId = firstColumn.TableId,
+                //TableId = firstColumn.TableId,
                 Schema = firstColumn.Schema,
                 Table = firstColumn.Table,
                 IsEntity = Utils.IsEntity(tableColumns),

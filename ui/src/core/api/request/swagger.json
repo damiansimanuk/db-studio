@@ -436,7 +436,7 @@
   },
   "components": {
     "schemas": {
-      "ColumnInfo": {
+      "ColumnInfoRecord": {
         "type": "object",
         "properties": {
           "tableId": {
@@ -607,9 +607,13 @@
           "isEdition": {
             "type": "boolean"
           },
-          "tableId": {
-            "type": "integer",
-            "format": "int32"
+          "schema": {
+            "type": "string",
+            "nullable": true
+          },
+          "table": {
+            "type": "string",
+            "nullable": true
           },
           "parentColumn": {
             "type": "string",
@@ -669,10 +673,6 @@
       "TableInfo": {
         "type": "object",
         "properties": {
-          "tableId": {
-            "type": "integer",
-            "format": "int32"
-          },
           "schema": {
             "type": "string",
             "nullable": true
@@ -701,7 +701,7 @@
           "columns": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/ColumnInfo"
+              "$ref": "#/components/schemas/ColumnInfoRecord"
             },
             "nullable": true
           }

@@ -343,7 +343,7 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        ColumnInfo: {
+        ColumnInfoRecord: {
             /** Format: int32 */
             tableId?: number;
             schema?: string | null;
@@ -392,8 +392,8 @@ export interface components {
         };
         RecordData: {
             isEdition?: boolean;
-            /** Format: int32 */
-            tableId?: number;
+            schema?: string | null;
+            table?: string | null;
             parentColumn?: string | null;
             columns?: {
                 [key: string]: string | null;
@@ -414,15 +414,13 @@ export interface components {
             readonly totalPages?: number;
         };
         TableInfo: {
-            /** Format: int32 */
-            tableId?: number;
             schema?: string | null;
             table?: string | null;
             isEntity?: boolean;
             isExtension?: boolean;
             identityColumn?: string | null;
             representationColumns?: string[] | null;
-            columns?: components["schemas"]["ColumnInfo"][] | null;
+            columns?: components["schemas"]["ColumnInfoRecord"][] | null;
         };
     };
     responses: never;

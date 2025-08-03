@@ -92,7 +92,7 @@ export const RenderFormField = ({
                                     <Checkbox
                                         inputId={fieldName}
                                         checked={!!field.value}
-                                        onChange={(e) => field.onChange(e.checked)}
+                                        onChange={(e) => field.onChange(e.checked ? "1" : e.checked == false ? "0" : null)}
                                         className={classNames({ 'p-invalid': fieldState.error })}
                                     />
                                 ) : inputType === 'date' ? (
@@ -111,9 +111,10 @@ export const RenderFormField = ({
                                         id={fieldName}
                                         value={field.value}
                                         allowEmpty
-                                        onValueChange={(e) => field.onChange(e.value)}
+                                        onValueChange={(e) => field.onChange(e.value ? e.value.toString() : null)}
                                         className={classNames('w-full', { 'p-invalid': fieldState.error })}
                                         mode="decimal"
+                                        step={0.1}
                                     />
                                 ) : (
                                     <InputText

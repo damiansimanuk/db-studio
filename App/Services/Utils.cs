@@ -11,19 +11,19 @@ public class Utils
 
     public static CultureInfo Culture { get; set; } = CultureInfo.CreateSpecificCulture("en-US");
 
-    public static bool IsEntity(List<ColumnInfo> tableColumns)
+    public static bool IsEntity(List<ColumnInfoRecord> tableColumns)
     {
         var requiredColumns = new[] { "Code", "Name", "Description" };
         return tableColumns.Any(c => c.IsIdentity)
             && tableColumns.Count(c => requiredColumns.Contains(c.ColumnName, StringComparer.OrdinalIgnoreCase)) == requiredColumns.Length;
     }
 
-    public static bool IsIdentity(ColumnInfo column)
+    public static bool IsIdentity(ColumnInfoRecord column)
     {
         return column.IsIdentity || IsIdentityColumnName(column);
     }
 
-    public static bool IsIdentityColumnName(ColumnInfo column)
+    public static bool IsIdentityColumnName(ColumnInfoRecord column)
     {
         var colNameSnake = ToSnakeCase(column.Table);
         var names = new[] {
@@ -49,14 +49,14 @@ public class Utils
         return string.Join("", res);
     }
 
-    public static bool IsExtension(ColumnInfo column)
+    public static bool IsExtension(ColumnInfoRecord column)
     {
         return column.IsFK &&
             (column.IsExtension ||
             (!column.IsIdentity && column.ColumnName.Equals($"Id{column.TableFK}", StringComparison.InvariantCultureIgnoreCase) && column.IsPK));
     }
 
-    public static List<ColumnInfo> GetIdentifierColumns(TableInfo tableInfo)
+    public static List<ColumnInfoRecord> GetIdentifierColumns(TableInfo tableInfo)
     {
         var ukColumns = tableInfo.Columns.Where(c => FilterParametersOnly(c) && ((c.IsPK && !c.IsIdentity) || c.IsUK)).ToList();
         if (ukColumns?.Any() != true)
@@ -69,35 +69,35 @@ public class Utils
         return ukColumns;
     }
 
-    public static List<ColumnInfo> GetInsertableColumns(TableInfo tableInfo)
+    public static List<ColumnInfoRecord> GetInsertableColumns(TableInfo tableInfo)
     {
         return tableInfo.Columns.Where(c => !IsIdentity(c)).ToList();
     }
 
-    public static List<ColumnInfo> GetUpdateableColumns(TableInfo tableInfo)
+    public static List<ColumnInfoRecord> GetUpdateableColumns(TableInfo tableInfo)
     {
         return tableInfo.Columns.Where(c => !IsIdentity(c) && !IsExtension(c) && !IsCreationTime(c)).ToList();
     }
 
-    public static ColumnInfo GetIdentityColumn(TableInfo tableInfo)
+    public static ColumnInfoRecord GetIdentityColumn(TableInfo tableInfo)
     {
         return tableInfo.Columns.FirstOrDefault(c => c.IsIdentity);
     }
 
-    public static bool FilterParametersOnly(ColumnInfo column)
+    public static bool FilterParametersOnly(ColumnInfoRecord column)
     {
         var timeColumns = new[] { "InsDateTime", "UpdDateTime", "CreatedAt", "UpdatedAt" };
         return (!IsIdentity(column) || IsExtension(column))
             && !timeColumns.Contains(column.ColumnName, StringComparer.OrdinalIgnoreCase);
     }
 
-    public static bool IsUpdateTime(ColumnInfo columnInfo)
+    public static bool IsUpdateTime(ColumnInfoRecord columnInfo)
     {
         var timeColumns = new[] { "UpdDateTime", "UpdatedAt" };
         return timeColumns.Contains(columnInfo.ColumnName, StringComparer.OrdinalIgnoreCase);
     }
 
-    public static bool IsCreationTime(ColumnInfo columnInfo)
+    public static bool IsCreationTime(ColumnInfoRecord columnInfo)
     {
         var timeColumns = new[] { "InsDateTime", "CreatedAt" };
         return timeColumns.Contains(columnInfo.ColumnName, StringComparer.OrdinalIgnoreCase);
@@ -113,7 +113,7 @@ public class Utils
         return word.Substring(0, 1).ToUpper() + word.Substring(1);
     }
 
-    public static string GetValueSql(ColumnInfo column, string? value)
+    public static string GetValueSql(ColumnInfoRecord column, string? value)
     {
         if (IsUpdateTime(column) || IsCreationTime(column))
             return "sysdatetimeoffset()";

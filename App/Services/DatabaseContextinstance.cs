@@ -21,12 +21,6 @@ public class DatabaseContextinstance
         tableInfosLazy = new Lazy<List<TableInfo>>(() => ApiRepository.GetDatabaseStructure(connectionName, connectionString).Result);
     }
 
-    public TableInfo GetTableInfo(int tableId)
-    {
-        return tableInfosLazy.Value.FirstOrDefault(t => t.TableId == tableId)
-            ?? throw new Exception("Table not found");
-    }
-
     public TableInfo GetTableInfo(string schema, string table)
     {
         return tableInfosLazy.Value.FirstOrDefault(t => t.Schema == schema && t.Table == table)
@@ -38,20 +32,20 @@ public class DatabaseContextinstance
         return tableInfosLazy.Value;
     }
 
-    public string GetAssignationValueSql(ColumnInfo column, string? value, string? prefix = null, bool isCondition = false)
+    public string GetAssignationValueSql(ColumnInfoRecord column, string? value, string? prefix = null, bool isCondition = false)
     {
         var valueSql = Utils.GetValueSql(column, value);
         var condition = isCondition && valueSql == "NULL" ? "IS" : "=";
         return $"{prefix ?? ""}{prefixCN}{column.ColumnName}{sufixCN} {condition} {valueSql}";
     }
 
-    public List<string> GetAssignationValueSql(List<ColumnInfo> columns, RecordData recordData, string? prefix = null, bool isCondition = false)
+    public List<string> GetAssignationValueSql(List<ColumnInfoRecord> columns, RecordData recordData, string? prefix = null, bool isCondition = false)
     {
         return columns
             .Select(c =>
             {
                 var rowValue = recordData.Columns.GetValueOrDefault(c.ColumnName);
-                var Dep = recordData.Dependencies.FirstOrDefault(d => d.ParentColumn == c.ColumnName);
+                var Dep = rowValue != null ? recordData.Dependencies.FirstOrDefault(d => d.ParentColumn == c.ColumnName) : null;
                 var represetnationValue = c.IsFK && Dep != null ? $"({SelectIdentity(Dep)})" : rowValue?.ToString();
 
                 return GetAssignationValueSql(c, represetnationValue, prefix, isCondition);
@@ -60,7 +54,7 @@ public class DatabaseContextinstance
 
     public string SelectIdentity(RecordData recordData)
     {
-        var tableInfo = GetTableInfo(recordData.TableId);
+        var tableInfo = GetTableInfo(recordData.Schema, recordData.Table);
         var identityColumn = Utils.GetIdentityColumn(tableInfo)?.ColumnName;
         //var identifierColumns = tableInfo.Columns.Where(c => (c.IsPK && !c.IsIdentity) || c.IsUK).ToList();
         var identifierColumns = Utils.GetIdentifierColumns(tableInfo);
@@ -75,7 +69,7 @@ public class DatabaseContextinstance
 
     public RecordData? GetOriginalData(RecordData recordData, string? recordId = null)
     {
-        var tableInfo = GetTableInfo(recordData.TableId);
+        var tableInfo = GetTableInfo(recordData.Schema, recordData.Table);
 
         if (recordId == null)
         {
@@ -95,13 +89,16 @@ public class DatabaseContextinstance
 
         var dependencies = recordData.Dependencies.Select(d =>
         {
-            return d.ParentColumn != null && columns.TryGetValue(d.ParentColumn, out var fkValue)
-                ? GetOriginalData(d, fkValue)
-                : GetOriginalData(d);
+            string? fkValue = null;
+            _ = d.IsEdition
+                ? d.ParentColumn != null && recordData.Columns.TryGetValue(d.ParentColumn, out fkValue)
+                : d.ParentColumn != null && columns.TryGetValue(d.ParentColumn, out fkValue);
+
+            return GetOriginalData(d, fkValue);
         }).Where(d => d != null).ToList();
 
         var record = recordData with
-        { 
+        {
             Columns = columns,
             Dependencies = dependencies!,
         };
@@ -112,7 +109,7 @@ public class DatabaseContextinstance
 
     public void GetMergeSql(RecordData recordData, List<string> sqls)
     {
-        var tableInfo = GetTableInfo(recordData.TableId);
+        var tableInfo = GetTableInfo(recordData.Schema, recordData.Table);
         var selectColumnsSql = GetAssignationValueSql(tableInfo.Columns, recordData);
         var identifierColumns = Utils.GetIdentifierColumns(tableInfo);
         var updatableColumns = Utils.GetUpdateableColumns(tableInfo);

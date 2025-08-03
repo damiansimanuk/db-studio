@@ -23,30 +23,30 @@ export function useTableStructure(connectionName: string, schema: string, table:
     }, [struct.data, schema, table, connectionName]);
 }
 
-export function useTableStructure2(connectionName: string, tableId: number) {
-    const struct = databaseStructureStore.use();
+// export function useTableStructure2(connectionName: string, tableId: number) {
+//     const struct = databaseStructureStore.use();
 
-    useEffect(() => {
-        struct.initialize({ query: { connectionName } })
-    }, [connectionName]);
+//     useEffect(() => {
+//         struct.initialize({ query: { connectionName } })
+//     }, [connectionName]);
 
-    return useMemo(() => {
-        return struct.data?.find(t => t.tableId === tableId);
-    }, [struct.data, tableId]);
-}
+//     return useMemo(() => {
+//         return struct.data?.find(t => t.schema === tableId);
+//     }, [struct.data, tableId]);
+// }
 
-export function useTable(connectionName: string, schema: string, table: string, prefix = "", perPage = 1000, visited: number[] = []) {
+export function useTable(connectionName: string, schema: string, table: string, prefix = "", perPage = 1000) {
     const rows = paginationTableStore.getOrCreate(`${prefix}${connectionName}:${schema}:${table}`).use();
     const struct = useTableStructure(connectionName, schema, table);
     const [dependencies, setDependencies] = useState<typeof struct.columns>([]);
 
-    useEffect(() => {
-        if (struct?.tableId && !visited.includes(struct.tableId)) {
-            visited.push(struct.tableId);
-            const deps = struct.columns.filter(c => c.isFK && !!c.tableFK);
-            setDependencies(deps);
-        }
-    }, [struct?.tableId]);
+    // useEffect(() => {
+    //     if (struct?.table && !visited.includes(struct.tableId)) {
+    //         visited.push(struct.tableId);
+    //         const deps = struct.columns.filter(c => c.isFK && !!c.tableFK);
+    //         setDependencies(deps);
+    //     }
+    // }, [struct?.tableId]);
 
     useEffect(() => {
         rows.initialize({ query: { connectionName, schema, table, page: 1, perPage } });

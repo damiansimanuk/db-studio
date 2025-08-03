@@ -1,7 +1,7 @@
 namespace DbStudio.Dtos;
 
-public class ColumnInfo
-{
+public class ColumnInfoRecord
+{ 
     public int TableId { get; set; }
     public string Schema { get; set; } = string.Empty;
     public string Table { get; set; } = string.Empty;

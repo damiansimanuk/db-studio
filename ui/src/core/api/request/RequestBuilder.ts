@@ -6,7 +6,7 @@ export type StatusError<T> = { [K in keyof T as K extends 400 | 401 | 403 | 404 
 // cd .\ui\src\core\api\request\ 
 // curl -o .\swagger.json http://localhost:58218/swagger/v1/swagger.json                                                                                                                      
 // npx openapi-typescript swagger.json --output swagger.ts
-// npx openapi-typescript http://localhost:5299/swagger/v1/swagger.json --output swagger.ts
+// npx openapi-typescript http://localhost:58218/swagger/v1/swagger.json --output swagger.ts
 
 export function RequestBuilder<Paths>(caller: ((url: string, method: string, body: string | null) => Promise<any>) | null = null) {
     function entryPoint<

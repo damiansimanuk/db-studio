@@ -44,7 +44,8 @@ export function TableList({
 
     const configRecord = (record: any) => {
         setRecordData({
-            tableId: struct.tableId,
+            schema: struct.schema,
+            table: struct.table,
             columns: { ...record },
             dependencies: []
         })
