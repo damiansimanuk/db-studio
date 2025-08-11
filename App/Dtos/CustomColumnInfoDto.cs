@@ -1,12 +1,12 @@
 namespace DbStudio.Dtos;
 
-public class CustomColumnInfo
+public class CustomColumnInfoDto
 { 
     public string? ConnectionName { get; set; }
     public string? Schema { get; set; }
     public string? Table { get; set; } 
     public string? ColumnName { get; set; }
-    public string? DataType { get; set; }
+    //public DataTypeEnum? DataType { get; set; }
     public string? DbType { get; set; }
     public string? DefaultValue { get; set; }
     public bool? IsNullable { get; set; }

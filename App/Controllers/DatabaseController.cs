@@ -15,7 +15,7 @@ public class DatabaseController : ControllerBase
     }
 
     [HttpGet("structure")]
-    public async Task<ActionResult<List<TableInfo>>> GetDatabaseStructure(
+    public async Task<ActionResult<List<TableInfoDto>>> GetDatabaseStructure(
         string connectionName = "DefaultConnection")
     {
         var structure = _databaseService.GetDatabaseStructure(connectionName);
@@ -23,7 +23,7 @@ public class DatabaseController : ControllerBase
     }
 
     [HttpGet("tableStructure")]
-    public ActionResult<TableInfo?> GetTableInfo(
+    public ActionResult<TableInfoDto?> GetTableInfo(
         string connectionName,
         string schema,
         string table)
@@ -34,7 +34,7 @@ public class DatabaseController : ControllerBase
     [HttpPost("GetMergeSql")]
     public ActionResult<MergeSqlResponse> GetMergeSql(
         string connectionName = "DefaultConnection",
-        [FromBody] RecordData recordData = null!)
+        [FromBody] ItemDataDto recordData = null!)
     {
         var res = _databaseService.GetMergeSql(connectionName, recordData);
         return new MergeSqlResponse(res.originalSql, res.newSql, res.diffSql);
@@ -70,7 +70,7 @@ public class DatabaseController : ControllerBase
     }
 
     [HttpGet("connections")]
-    public Task<List<ConnectionRecord>> GetConnections()
+    public Task<List<ConnectionDto>> GetConnections()
     {
         return _databaseService.GetConnections();
     }
@@ -78,7 +78,7 @@ public class DatabaseController : ControllerBase
     [HttpPut("columnConfig/{connectionName}")]
     public Task DefineColumnConfig(
         string connectionName,
-        [FromBody] CustomColumnInfo[] customColumnConfig)
+        [FromBody] CustomColumnInfoDto[] customColumnConfig)
     {
         return _databaseService.DefineColumnConfig(connectionName, customColumnConfig);
     }

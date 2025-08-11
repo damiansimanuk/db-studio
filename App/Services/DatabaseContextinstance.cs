@@ -1,45 +1,95 @@
+using DbStudio.Database;
 using DbStudio.Dtos;
 using DbStudio.Models;
 using Microsoft.Extensions.Configuration;
 using System.Data;
 using System.Linq;
+using System.Threading.Tasks;
+using static System.Runtime.InteropServices.Marshalling.IIUnknownCacheStrategy;
 
 namespace DbStudio.Services;
 
 public class DatabaseContextinstance
 {
-    const string prefixCN = "[";
-    const string sufixCN = "]";
     private readonly string _connectionString;
-    private Lazy<List<TableInfo>> tableInfosLazy;
+    private Lazy<List<TableInfoDto>> tableInfosLazy;
     private readonly string _connectionName;
+    private readonly IDatabase _db;
+    private readonly ConfigDatabase _configDatabase;
 
-    public DatabaseContextinstance(string connectionName, string connectionString)
+    public DatabaseContextinstance(ConfigDatabase configDatabase, string connectionName, string connectionString)
     {
         _connectionName = connectionName;
         _connectionString = connectionString;
-        tableInfosLazy = new Lazy<List<TableInfo>>(() => ApiRepository.GetDatabaseStructure(connectionName, connectionString).Result);
+        _configDatabase = configDatabase;
+        _db = DatabaseFactory.Create(connectionName, connectionString);
+        tableInfosLazy = new Lazy<List<TableInfoDto>>(() => LoadDatabaseStructure().Result);
     }
 
-    public TableInfo GetTableInfo(string schema, string table)
+    public TableInfoDto GetTableInfo(string schema, string table)
     {
         return tableInfosLazy.Value.FirstOrDefault(t => t.Schema == schema && t.Table == table)
             ?? throw new Exception("Table not found");
     }
 
-    public List<TableInfo> GetDatabaseStructure()
+    public List<TableInfoDto> GetDatabaseStructure()
     {
         return tableInfosLazy.Value;
     }
 
-    public string GetAssignationValueSql(ColumnInfoRecord column, string? value, string? prefix = null, bool isCondition = false)
+    private async Task<List<TableInfoDto>> LoadDatabaseStructure()
     {
-        var valueSql = Utils.GetValueSql(column, value);
-        var condition = isCondition && valueSql == "NULL" ? "IS" : "=";
-        return $"{prefix ?? ""}{prefixCN}{column.ColumnName}{sufixCN} {condition} {valueSql}";
+        var tables = new List<TableInfoDto>();
+        var allColumns = await _db.GetColumns();
+        var customColumnConfigs = await _configDatabase.GetCustomColumnConfigs(_connectionName);
+
+        foreach (var column in allColumns)
+        {
+            if (Utils.IsIdentity(column))
+                column.IsIdentity = true;
+            if (Utils.IsExtension(column))
+                column.IsExtension = true;
+            column.DataType = Utils.GetType(column.DbType);
+
+            var cc = customColumnConfigs.FirstOrDefault(c => c.Schema == column.Schema && c.Table == column.Table && c.ColumnName == column.ColumnName);
+            if (cc != null)
+            {
+                column.IsIdentity = cc.IsIdentity ?? column.IsIdentity;
+                column.IsExtension = cc.IsExtension ?? column.IsExtension;
+                //column.DataType = cc.DataType ?? column.DataType;
+                column.IsPK = cc.IsPK ?? column.IsPK;
+                column.IsFK = cc.IsFK ?? column.IsFK;
+                column.IsUK = cc.IsUK ?? column.IsUK;
+                column.SchemaFK = cc.SchemaFK ?? column.SchemaFK;
+                column.TableFK = cc.TableFK ?? column.TableFK;
+                column.DefaultValue = cc.DefaultValue ?? column.DefaultValue;
+                column.IsNullable = cc.IsNullable ?? column.IsNullable;
+                column.IsCustom = true;
+            }
+        }
+
+        foreach (var group in allColumns.GroupBy(c => c.TableId))
+        {
+            var tableColumns = group.ToList();
+            var firstColumn = tableColumns.First();
+
+            tables.Add(new TableInfoDto
+            {
+                Schema = firstColumn.Schema,
+                Table = firstColumn.Table,
+                IsExtension = tableColumns.Any(c => c.IsExtension),
+                IdentityColumn = tableColumns.FirstOrDefault(c => c.IsIdentity)?.ColumnName,
+                IdentifierColumns = Utils.FilterIdentifierColumns(tableColumns).Select(c => c.ColumnName).ToList(),
+                UpdateableColumns = Utils.FilterUpdateableColumns(tableColumns).Select(c => c.ColumnName).ToList(),
+                InsertableColumns = Utils.FilterInsertableColumns(tableColumns).Select(c => c.ColumnName).ToList(),
+                Columns = tableColumns,
+            });
+        }
+
+        return tables.OrderBy(e => e.Table).OrderBy(e => e.Schema).ToList();
     }
 
-    public List<string> GetAssignationValueSql(List<ColumnInfoRecord> columns, RecordData recordData, string? prefix = null, bool isCondition = false)
+    public List<string> GetAssignationValueSql(List<ColumnInfoDto> columns, ItemDataDto recordData, string? prefix = null, bool isCondition = false)
     {
         return columns
             .Select(c =>
@@ -48,36 +98,31 @@ public class DatabaseContextinstance
                 var Dep = rowValue != null ? recordData.Dependencies.FirstOrDefault(d => d.ParentColumn == c.ColumnName) : null;
                 var represetnationValue = c.IsFK && Dep != null ? $"({SelectIdentity(Dep)})" : rowValue?.ToString();
 
-                return GetAssignationValueSql(c, represetnationValue, prefix, isCondition);
+                return _db.GetAssignationValueSql(c, represetnationValue, prefix, isCondition);
             }).ToList();
     }
 
-    public string SelectIdentity(RecordData recordData)
+    public string SelectIdentity(ItemDataDto recordData)
     {
         var tableInfo = GetTableInfo(recordData.Schema, recordData.Table);
-        var identityColumn = Utils.GetIdentityColumn(tableInfo)?.ColumnName;
-        //var identifierColumns = tableInfo.Columns.Where(c => (c.IsPK && !c.IsIdentity) || c.IsUK).ToList();
         var identifierColumns = Utils.GetIdentifierColumns(tableInfo);
         var conditionColumns = GetAssignationValueSql(identifierColumns, recordData, null, true);
 
-        var sql = $"""
-        SELECT {identityColumn} FROM [{tableInfo.Schema}].[{tableInfo.Table}] WHERE {string.Join(" AND ", conditionColumns)}
-        """;
+        var sql = _db.SelectIdentity(tableInfo, conditionColumns);
 
         return sql;
     }
 
-    public RecordData? GetOriginalData(RecordData recordData, string? recordId = null)
+    public ItemDataDto? GetOriginalData(ItemDataDto recordData, string? recordId = null)
     {
         var tableInfo = GetTableInfo(recordData.Schema, recordData.Table);
 
         if (recordId == null)
         {
-            var identityColumn = Utils.GetIdentityColumn(tableInfo)?.ColumnName;
-            if (identityColumn == null)
+            if (tableInfo.IdentityColumn == null)
                 return null;
 
-            recordId = recordData.Columns.GetValueOrDefault(identityColumn);
+            recordId = recordData.Columns.GetValueOrDefault(tableInfo.IdentityColumn);
         }
 
         if (recordId == null)
@@ -106,31 +151,17 @@ public class DatabaseContextinstance
         return record;
     }
 
-
-    public void GetMergeSql(RecordData recordData, List<string> sqls)
+    public void LoadMergeSql(ItemDataDto recordData, List<string> sqls)
     {
         var tableInfo = GetTableInfo(recordData.Schema, recordData.Table);
         var selectColumnsSql = GetAssignationValueSql(tableInfo.Columns, recordData);
-        var identifierColumns = Utils.GetIdentifierColumns(tableInfo);
-        var updatableColumns = Utils.GetUpdateableColumns(tableInfo);
-        var insertableColumns = Utils.GetInsertableColumns(tableInfo);
 
-        recordData.Dependencies.ForEach(d => GetMergeSql(d, sqls));
+        recordData.Dependencies.ForEach(d => LoadMergeSql(d, sqls));
 
         if (!recordData.IsEdition)
             return;
 
-        var sql = $""" 
-        MERGE INTO [{tableInfo.Schema}].[{tableInfo.Table}] AS T 
-        USING (SELECT
-        {"    " + string.Join(",\n    ", selectColumnsSql)}
-        ) AS S 
-        ON {string.Join(" AND ", identifierColumns.Select(c => $"T.{prefixCN}{c.ColumnName}{sufixCN} = S.{prefixCN}{c.ColumnName}{sufixCN}"))}
-        WHEN MATCHED THEN UPDATE SET {string.Join(", ", updatableColumns.Select(c => $"T.{prefixCN}{c.ColumnName}{sufixCN} = S.{prefixCN}{c.ColumnName}{sufixCN}"))}
-        WHEN NOT MATCHED THEN INSERT ({string.Join(", ", insertableColumns.Select(c => $"{prefixCN}{c.ColumnName}{sufixCN}"))})
-        VALUES ({string.Join(", ", insertableColumns.Select(c => $"S.{prefixCN}{c.ColumnName}{sufixCN}"))})
-        ;
-        """;
+        var sql = _db.GetMergeSql(tableInfo, selectColumnsSql);
 
         sqls.Add(sql);
     }
@@ -142,20 +173,16 @@ public class DatabaseContextinstance
         int perPage = 100)
     {
         var tableInfo = GetTableInfo(schema, table);
-        var identityColumn = Utils.GetIdentityColumn(tableInfo);
-        var representationColumns = Utils.GetRepresentationColumns(tableInfo);
-
-        return await ApiRepository.GetTableRows(_connectionString, schema, table, identityColumn?.ColumnName, representationColumns, page, perPage);
+        return await _db.GetTableRows(tableInfo, page, perPage);
     }
 
     public Dictionary<string, string?>? GetRecord(string schema, string table, string recordId)
     {
         var tableInfo = GetTableInfo(schema, table);
-        var identityColumn = Utils.GetIdentityColumn(tableInfo) ?? throw new Exception("Identity column not found");
-        if (string.IsNullOrWhiteSpace(recordId)) throw new Exception("Invalid recordId");
 
-        var result = ApiRepository.GetRecord(_connectionString, schema, table, identityColumn.ColumnName, recordId).Result;
+        if (string.IsNullOrWhiteSpace(recordId))
+            throw new Exception("Invalid recordId");
 
-        return result;
+        return _db.GetRecord(tableInfo, recordId).Result;
     }
 }

@@ -1,13 +1,13 @@
 namespace DbStudio.Dtos;
 
-public class ColumnInfoRecord
-{ 
-    public int TableId { get; set; }
+public class ColumnInfoDto
+{
+    internal int TableId { get; set; }
     public string Schema { get; set; } = string.Empty;
     public string Table { get; set; } = string.Empty;
     public int ColumnId { get; set; }
     public string ColumnName { get; set; } = string.Empty;
-    public string DataType { get; set; } = string.Empty;
+    public DataTypeEnum DataType { get; set; } = DataTypeEnum.String;
     public string? DbType { get; set; }
     public string DefaultValue { get; set; } = string.Empty;
     public bool IsNullable { get; set; }
@@ -20,11 +20,3 @@ public class ColumnInfoRecord
     public string SchemaFK { get; set; } = string.Empty;
     public string TableFK { get; set; } = string.Empty;
 }
-
-
-
-public class ConnectionRecord 
-{
-    public string ConnectionName { get; set; } = string.Empty;
-    public string ConnectionString { get; set; } = string.Empty;
-}   

@@ -50,7 +50,7 @@ export function DefineRecordDialog({
     }, [recordData?.columns]);
 
     const onAcceptForm = async (data: RecordData['columns']) => {
-        Object.assign(recordData.columns, data)
+        Object.assign(recordData.columns, data, { '__edition': new Date().toISOString() })
         recordData.isEdition = true;
         console.log('onAcceptForm recordData:', JSON.stringify(recordData, null, 2));
         onSuccess?.();
@@ -60,7 +60,7 @@ export function DefineRecordDialog({
         setLoading(true);
         setSql({ originalSql: '', newSql: '', diffSql: '' });
 
-        Object.assign(recordData.columns, data)
+        Object.assign(recordData.columns, data, { '__edition': new Date().toISOString() })
         recordData.isEdition = true;
 
         try {

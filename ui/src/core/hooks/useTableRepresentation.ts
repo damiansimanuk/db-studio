@@ -29,6 +29,8 @@ export function useTableRepresentation({
             schemaName,
             tableName,
             value: recordId,
+            prefix: "Mem_",
+            perPage: 10000,
             onReady: (representation, done) => {
                 console.log("onReady", tableName, representation, done);
                 if (done) {

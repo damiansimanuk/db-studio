@@ -1,42 +1,45 @@
+namespace DbStudio.Services;
+
+using Azure;
 using DbStudio.Dtos;
+using System;
 using System.Data;
 using System.Globalization;
 using System.Text;
-using System;
-
-namespace DbStudio.Services;
 
 public class Utils
 {
 
     public static CultureInfo Culture { get; set; } = CultureInfo.CreateSpecificCulture("en-US");
 
-    public static bool IsEntity(List<ColumnInfoRecord> tableColumns)
+    public static bool IsEntity(List<ColumnInfoDto> tableColumns)
     {
         var requiredColumns = new[] { "Code", "Name", "Description" };
         return tableColumns.Any(c => c.IsIdentity)
             && tableColumns.Count(c => requiredColumns.Contains(c.ColumnName, StringComparer.OrdinalIgnoreCase)) == requiredColumns.Length;
     }
 
-    public static bool IsIdentity(ColumnInfoRecord column)
+    public static bool IsIdentity(ColumnInfoDto column)
     {
-        return column.IsIdentity || IsIdentityColumnName(column);
+        return column.IsIdentity || (IsIdentityColumnName(column.Table, column.ColumnName) && column.IsPK);
     }
 
-    public static bool IsIdentityColumnName(ColumnInfoRecord column)
+    public static bool IsIdentityColumnName(string table, string columnName)
     {
-        var colNameSnake = ToSnakeCase(column.Table);
+        var colNameSnake = ToSnakeCase(table);
         var names = new[] {
             $"id",
-            $"id{column.Table}",
-            $"{column.Table}id",
+            $"id{table}",
+            $"{table}id",
+            $"id_{table}",
+            $"{table}_id",
             $"id_{colNameSnake}",
             $"{colNameSnake}_id"
         };
-        return names.Contains(column.ColumnName, StringComparer.InvariantCultureIgnoreCase) && column.IsPK;
+        return names.Contains(columnName, StringComparer.InvariantCultureIgnoreCase);
     }
 
-    public static string ToSnakeCase(string text)
+    private static string ToSnakeCase(string text)
     {
         if (string.IsNullOrEmpty(text))
             return text;
@@ -49,71 +52,59 @@ public class Utils
         return string.Join("", res);
     }
 
-    public static bool IsExtension(ColumnInfoRecord column)
+    public static bool IsExtension(ColumnInfoDto column)
     {
         return column.IsFK &&
             (column.IsExtension ||
-            (!column.IsIdentity && column.ColumnName.Equals($"Id{column.TableFK}", StringComparison.InvariantCultureIgnoreCase) && column.IsPK));
+            (!column.IsIdentity && IsIdentityColumnName(column.Table, column.ColumnName) && column.IsPK));
     }
 
-    public static List<ColumnInfoRecord> GetIdentifierColumns(TableInfo tableInfo)
+    public static List<ColumnInfoDto> FilterIdentifierColumns(List<ColumnInfoDto> columns)
     {
-        var ukColumns = tableInfo.Columns.Where(c => FilterParametersOnly(c) && ((c.IsPK && !c.IsIdentity) || c.IsUK)).ToList();
-        if (ukColumns?.Any() != true)
-            ukColumns = tableInfo.Columns.Where(c => c.IsUK).ToList();
-        if (ukColumns?.Any() != true && IsEntity(tableInfo.Columns))
-            ukColumns = tableInfo.Columns.Where(c => c.ColumnName == "Code").ToList();
-        if (ukColumns?.Any() != true)
-            ukColumns = tableInfo.Columns.Where(c => c.IsIdentity || c.IsExtension).ToList();
+        var ukColumns = columns.Where(c => FilterParametersOnly(c) && ((c.IsPK && !c.IsIdentity) || c.IsUK)).ToList();
+        if (ukColumns.Any() != true)
+            ukColumns = columns.Where(c => c.IsUK).ToList();
+        if (ukColumns.Any() != true)
+            ukColumns = columns.Where(c => c.IsIdentity || c.IsExtension).ToList();
 
         return ukColumns;
     }
 
-    public static List<ColumnInfoRecord> GetInsertableColumns(TableInfo tableInfo)
+    public static List<ColumnInfoDto> GetIdentifierColumns(TableInfoDto tableInfo)
     {
-        return tableInfo.Columns.Where(c => !IsIdentity(c)).ToList();
+        return tableInfo.Columns.Where(c => tableInfo.IdentifierColumns.Contains(c.ColumnName)).ToList();
     }
 
-    public static List<ColumnInfoRecord> GetUpdateableColumns(TableInfo tableInfo)
+    public static List<ColumnInfoDto> FilterInsertableColumns(List<ColumnInfoDto> columns)
     {
-        return tableInfo.Columns.Where(c => !IsIdentity(c) && !IsExtension(c) && !IsCreationTime(c)).ToList();
+        return columns.Where(c => !c.IsIdentity).ToList();
     }
 
-    public static ColumnInfoRecord GetIdentityColumn(TableInfo tableInfo)
+    public static List<ColumnInfoDto> FilterUpdateableColumns(List<ColumnInfoDto> columns)
     {
-        return tableInfo.Columns.FirstOrDefault(c => c.IsIdentity);
+        return columns.Where(c => !c.IsIdentity && !c.IsExtension && !IsCreationTime(c)).ToList();
     }
 
-    public static bool FilterParametersOnly(ColumnInfoRecord column)
+    public static bool FilterParametersOnly(ColumnInfoDto column)
     {
         var timeColumns = new[] { "InsDateTime", "UpdDateTime", "CreatedAt", "UpdatedAt" };
         return (!IsIdentity(column) || IsExtension(column))
             && !timeColumns.Contains(column.ColumnName, StringComparer.OrdinalIgnoreCase);
     }
 
-    public static bool IsUpdateTime(ColumnInfoRecord columnInfo)
+    public static bool IsUpdateTime(ColumnInfoDto columnInfo)
     {
         var timeColumns = new[] { "UpdDateTime", "UpdatedAt" };
         return timeColumns.Contains(columnInfo.ColumnName, StringComparer.OrdinalIgnoreCase);
     }
 
-    public static bool IsCreationTime(ColumnInfoRecord columnInfo)
+    public static bool IsCreationTime(ColumnInfoDto columnInfo)
     {
         var timeColumns = new[] { "InsDateTime", "CreatedAt" };
         return timeColumns.Contains(columnInfo.ColumnName, StringComparer.OrdinalIgnoreCase);
     }
 
-    public static string CamelCase(string word)
-    {
-        return word.Substring(0, 1).ToLower() + word.Substring(1);
-    }
-
-    public static string PascalCase(string word)
-    {
-        return word.Substring(0, 1).ToUpper() + word.Substring(1);
-    }
-
-    public static string GetValueSql(ColumnInfoRecord column, string? value)
+    public static string GetValueSql(ColumnInfoDto column, string? value)
     {
         if (IsUpdateTime(column) || IsCreationTime(column))
             return "sysdatetimeoffset()";
@@ -124,55 +115,60 @@ public class Utils
         return ParamValueToString(column.DataType, value);
     }
 
-    public static List<string> GetRepresentationColumns(TableInfo tableInfo)
-    {
-        var ukColumns = GetIdentifierColumns(tableInfo);
-        return ukColumns.Select(c => c.ColumnName).ToList();
-    }
-
-    public static string ParamValueToString(string dataType, string? value)
+    public static string ParamValueToString(DataTypeEnum dataType, string? value)
     {
         if (value == null)
         {
             return "NULL";
         }
 
-        bool resParse;
-
         switch (dataType)
         {
-            case "bool":
-                resParse = (value == "1" || value == "true") || (bool.TryParse(value, out var res) && res);
-                return resParse ? "1" : "0";
-            case "short":
-            case "int":
-            case "long":
-                return Convert.ToInt64(value).ToString();
-            case "decimal":
-                return Convert.ToDecimal(value).ToString();
-            case "float":
-                return Convert.ToSingle(value).ToString("R", Culture);
-            case "double":
+            case DataTypeEnum.Boolean:
+                return (value == "1" || value.ToLower() == "true") ? "1" : "0";
+
+            case DataTypeEnum.Integer:
+                return Convert.ToInt64(value).ToString(Culture);
+
+            case DataTypeEnum.Decimal:
+                return Convert.ToDecimal(value).ToString(Culture);
+
+            case DataTypeEnum.Float:
                 return Convert.ToDouble(value).ToString("R", Culture);
-            case "string":
-                return $"'{((string)value).Replace("'", "''")}'";
-            case "TimeSpan":
-                resParse = TimeSpan.TryParse(value, out var timeSpan);
-                return resParse ? $"'{timeSpan.ToString("c")}'" : "NULL";
-            case "byte[]":
+
+            case DataTypeEnum.TimeOnly:
+                var isTime = TimeSpan.TryParse(value, out var timeSpan);
+                return isTime ? $"'{timeSpan.ToString("c")}'" : "NULL";
+
+            case DataTypeEnum.Binary:
                 var bytes = Encoding.UTF8.GetBytes(value);
                 return "0x" + BitConverter.ToString(bytes).Replace("-", string.Empty);
-            case "DateTimeOffset":
-                resParse = DateTimeOffset.TryParse(value, out var dateTimeOffset);
-                return resParse ? $"'{dateTimeOffset.ToString("O")}'" : "NULL";
-            case "char":
+
+            case DataTypeEnum.DateTimeOffset:
+                var isDateTimeOffset = DateTimeOffset.TryParse(value, out var dateTimeOffset);
+                return isDateTimeOffset ? $"'{dateTimeOffset.ToString("O")}'" : "NULL";
+
+            case DataTypeEnum.DateTime:
+                var isDateTime = DateTime.TryParse(value, out var dateTime);
+                return isDateTime ? $"'{dateTime.ToString("O")}'" : "NULL";
+
+            case DataTypeEnum.String:
+            case DataTypeEnum.Json:
+            case DataTypeEnum.Xml:
+                return $"'{value.Replace("'", "''")}'";
+
+            case DataTypeEnum.Guid:
+            case DataTypeEnum.Char:
             default:
                 return $"'{value}'";
         }
     }
 
-    public static string GetType(string dbType)
+    public static DataTypeEnum GetType(string? dbType)
     {
+        if (dbType == null)
+            return DataTypeEnum.Undefined;
+
         dbType = dbType.Replace("[", "").Replace("]", "").Replace("Common.", "").Trim();
 
         switch (dbType)
@@ -183,40 +179,38 @@ public class Utils
             case "nvarchar":
             case "varchar":
             case "nchar":
-                return "string";
+                return DataTypeEnum.String;
             case "char":
-                return "char";
+                return DataTypeEnum.Char;
             case "TActive":
             case "bit":
-                return "bool";
+                return DataTypeEnum.Boolean;
             case "time":
-                return "TimeSpan";
-            case "date":
-            case "datetimeoffset":
-            case "smalldatetime":
-            case "datetime2":
+                return DataTypeEnum.TimeOnly;
             case "TDateTime":
-                return "DateTimeOffset";
+            case "datetimeoffset":
+            case "datetimeoffset2":
+                return DataTypeEnum.DateTimeOffset;
+            case "date":
+            case "datetime2":
+            case "smalldatetime":
+                return DataTypeEnum.DateTime;
             case "bigint":
-                return "Int64";
             case "int":
-                return "int";
             case "tinyint":
             case "smallint":
-                return "short";
+                return DataTypeEnum.Integer;
             case "real":
             case "float":
-                return "float";
+                return DataTypeEnum.Float;
             case "numeric":
             case "decimal":
-                return "decimal";
+                return DataTypeEnum.Decimal;
             case "varbinary":
             case "binary":
-                return "byte[]";
-            case "sql_variant":
-                return "object";
+                return DataTypeEnum.Binary;
             default:
-                return dbType;
+                return DataTypeEnum.Undefined;
         }
     }
 }

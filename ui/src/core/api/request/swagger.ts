@@ -28,9 +28,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["TableInfo"][];
-                        "application/json": components["schemas"]["TableInfo"][];
-                        "text/json": components["schemas"]["TableInfo"][];
+                        "text/plain": components["schemas"]["TableInfoDto"][];
+                        "application/json": components["schemas"]["TableInfoDto"][];
+                        "text/json": components["schemas"]["TableInfoDto"][];
                     };
                 };
             };
@@ -69,9 +69,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["TableInfo"];
-                        "application/json": components["schemas"]["TableInfo"];
-                        "text/json": components["schemas"]["TableInfo"];
+                        "text/plain": components["schemas"]["TableInfoDto"];
+                        "application/json": components["schemas"]["TableInfoDto"];
+                        "text/json": components["schemas"]["TableInfoDto"];
                     };
                 };
             };
@@ -104,9 +104,9 @@ export interface paths {
             };
             requestBody?: {
                 content: {
-                    "application/json": components["schemas"]["RecordData"];
-                    "text/json": components["schemas"]["RecordData"];
-                    "application/*+json": components["schemas"]["RecordData"];
+                    "application/json": components["schemas"]["ItemDataDto"];
+                    "text/json": components["schemas"]["ItemDataDto"];
+                    "application/*+json": components["schemas"]["ItemDataDto"];
                 };
             };
             responses: {
@@ -283,9 +283,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ConnectionRecord"][];
-                        "application/json": components["schemas"]["ConnectionRecord"][];
-                        "text/json": components["schemas"]["ConnectionRecord"][];
+                        "text/plain": components["schemas"]["ConnectionDto"][];
+                        "application/json": components["schemas"]["ConnectionDto"][];
+                        "text/json": components["schemas"]["ConnectionDto"][];
                     };
                 };
             };
@@ -317,9 +317,9 @@ export interface paths {
             };
             requestBody?: {
                 content: {
-                    "application/json": components["schemas"]["CustomColumnInfo"][];
-                    "text/json": components["schemas"]["CustomColumnInfo"][];
-                    "application/*+json": components["schemas"]["CustomColumnInfo"][];
+                    "application/json": components["schemas"]["CustomColumnInfoDto"][];
+                    "text/json": components["schemas"]["CustomColumnInfoDto"][];
+                    "application/*+json": components["schemas"]["CustomColumnInfoDto"][];
                 };
             };
             responses: {
@@ -343,15 +343,13 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        ColumnInfoRecord: {
-            /** Format: int32 */
-            tableId?: number;
+        ColumnInfoDto: {
             schema?: string | null;
             table?: string | null;
             /** Format: int32 */
             columnId?: number;
             columnName?: string | null;
-            dataType?: string | null;
+            dataType?: components["schemas"]["DataTypeEnum"];
             dbType?: string | null;
             defaultValue?: string | null;
             isNullable?: boolean;
@@ -364,16 +362,15 @@ export interface components {
             schemaFK?: string | null;
             tableFK?: string | null;
         };
-        ConnectionRecord: {
+        ConnectionDto: {
             connectionName?: string | null;
             connectionString?: string | null;
         };
-        CustomColumnInfo: {
+        CustomColumnInfoDto: {
             connectionName?: string | null;
             schema?: string | null;
             table?: string | null;
             columnName?: string | null;
-            dataType?: string | null;
             dbType?: string | null;
             defaultValue?: string | null;
             isNullable?: boolean | null;
@@ -385,12 +382,9 @@ export interface components {
             schemaFK?: string | null;
             tableFK?: string | null;
         };
-        MergeSqlResponse: {
-            originalSql?: string | null;
-            newSql?: string | null;
-            diffSql?: string | null;
-        };
-        RecordData: {
+        /** @enum {string} */
+        DataTypeEnum: "Undefined" | "String" | "Char" | "Integer" | "Decimal" | "Float" | "Boolean" | "DateTime" | "DateTimeOffset" | "TimeOnly" | "Binary" | "Json" | "Xml" | "Guid";
+        ItemDataDto: {
             isEdition?: boolean;
             schema?: string | null;
             table?: string | null;
@@ -398,7 +392,12 @@ export interface components {
             columns?: {
                 [key: string]: string | null;
             } | null;
-            dependencies?: components["schemas"]["RecordData"][] | null;
+            dependencies?: components["schemas"]["ItemDataDto"][] | null;
+        };
+        MergeSqlResponse: {
+            originalSql?: string | null;
+            newSql?: string | null;
+            diffSql?: string | null;
         };
         StringStringDictionaryPagedResult: {
             items?: {
@@ -413,14 +412,15 @@ export interface components {
             /** Format: int32 */
             readonly totalPages?: number;
         };
-        TableInfo: {
+        TableInfoDto: {
             schema?: string | null;
             table?: string | null;
-            isEntity?: boolean;
             isExtension?: boolean;
             identityColumn?: string | null;
-            representationColumns?: string[] | null;
-            columns?: components["schemas"]["ColumnInfoRecord"][] | null;
+            identifierColumns?: string[] | null;
+            updateableColumns?: string[] | null;
+            insertableColumns?: string[] | null;
+            columns?: components["schemas"]["ColumnInfoDto"][] | null;
         };
     };
     responses: never;

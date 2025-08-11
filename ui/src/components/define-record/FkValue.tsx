@@ -24,7 +24,7 @@ export function FkValue({
     connectionName: string;
     schemaName: string;
     tableName: string;
-    value: any;
+    value: string;
 }) {
     const { representation, isLoading } = useTableRepresentation({ connectionName, schemaName, tableName, recordId: value });
 

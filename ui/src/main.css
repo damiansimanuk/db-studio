@@ -16,12 +16,12 @@ body {
     "container-main"
     "container-footer";
 
-  &>header {
+  & > header {
     grid-area: container-header;
     padding: 0.4rem;
   }
 
-  &>main.container {
+  & > main.container {
     grid-area: container-main;
     position: relative;
     height: 100%;
@@ -30,7 +30,7 @@ body {
     overflow-y: auto;
   }
 
-  &>footer {
+  & > footer {
     grid-area: container-footer;
     background-color: var(--surface-50);
     padding: 0.4rem;
@@ -47,11 +47,10 @@ body {
   padding-top: 0 !important;
 }
 
-.p-checkbox>label {
+.p-checkbox > label {
   user-select: none;
   cursor: pointer;
 }
-
 
 .p-datatable {
   .p-datatable-wrapper[style*="max-height"] {
@@ -97,7 +96,9 @@ button.p-button-icon-only.p-button-rounded {
   margin-right: 0 !important;
 }
 
-.p-datatable.p-datatable-gridlines .p-datatable-scrollable-table>.p-datatable-thead {
+.p-datatable.p-datatable-gridlines
+  .p-datatable-scrollable-table
+  > .p-datatable-thead {
   top: 0px !important;
 }
 
@@ -113,11 +114,9 @@ button.p-button-icon-only.p-button-rounded {
   font-size: unset;
 }
 
-.p-menubar .p-menuitem>.p-menuitem-content .p-menuitem-link {
+.p-menubar .p-menuitem > .p-menuitem-content .p-menuitem-link {
   padding: 0.5rem 1rem;
 }
-
-
 
 @layer primereact {
   .p-tabview-panels {
@@ -127,6 +126,10 @@ button.p-button-icon-only.p-button-rounded {
 
   .p-tabview-panels .p-tabview-panel {
     flex-grow: 1;
-    height: 100%; 
+    height: 100%;
   }
+}
+
+.no-select {
+  user-select: none;
 }

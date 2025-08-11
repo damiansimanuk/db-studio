@@ -28,7 +28,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/TableInfo"
+                    "$ref": "#/components/schemas/TableInfoDto"
                   }
                 }
               },
@@ -36,7 +36,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/TableInfo"
+                    "$ref": "#/components/schemas/TableInfoDto"
                   }
                 }
               },
@@ -44,7 +44,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/TableInfo"
+                    "$ref": "#/components/schemas/TableInfoDto"
                   }
                 }
               }
@@ -87,17 +87,17 @@
             "content": {
               "text/plain": {
                 "schema": {
-                  "$ref": "#/components/schemas/TableInfo"
+                  "$ref": "#/components/schemas/TableInfoDto"
                 }
               },
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TableInfo"
+                  "$ref": "#/components/schemas/TableInfoDto"
                 }
               },
               "text/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TableInfo"
+                  "$ref": "#/components/schemas/TableInfoDto"
                 }
               }
             }
@@ -124,17 +124,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RecordData"
+                "$ref": "#/components/schemas/ItemDataDto"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/RecordData"
+                "$ref": "#/components/schemas/ItemDataDto"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/RecordData"
+                "$ref": "#/components/schemas/ItemDataDto"
               }
             }
           }
@@ -358,7 +358,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/ConnectionRecord"
+                    "$ref": "#/components/schemas/ConnectionDto"
                   }
                 }
               },
@@ -366,7 +366,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/ConnectionRecord"
+                    "$ref": "#/components/schemas/ConnectionDto"
                   }
                 }
               },
@@ -374,7 +374,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/ConnectionRecord"
+                    "$ref": "#/components/schemas/ConnectionDto"
                   }
                 }
               }
@@ -404,7 +404,7 @@
               "schema": {
                 "type": "array",
                 "items": {
-                  "$ref": "#/components/schemas/CustomColumnInfo"
+                  "$ref": "#/components/schemas/CustomColumnInfoDto"
                 }
               }
             },
@@ -412,7 +412,7 @@
               "schema": {
                 "type": "array",
                 "items": {
-                  "$ref": "#/components/schemas/CustomColumnInfo"
+                  "$ref": "#/components/schemas/CustomColumnInfoDto"
                 }
               }
             },
@@ -420,7 +420,7 @@
               "schema": {
                 "type": "array",
                 "items": {
-                  "$ref": "#/components/schemas/CustomColumnInfo"
+                  "$ref": "#/components/schemas/CustomColumnInfoDto"
                 }
               }
             }
@@ -436,13 +436,9 @@
   },
   "components": {
     "schemas": {
-      "ColumnInfoRecord": {
+      "ColumnInfoDto": {
         "type": "object",
         "properties": {
-          "tableId": {
-            "type": "integer",
-            "format": "int32"
-          },
           "schema": {
             "type": "string",
             "nullable": true
@@ -460,8 +456,7 @@
             "nullable": true
           },
           "dataType": {
-            "type": "string",
-            "nullable": true
+            "$ref": "#/components/schemas/DataTypeEnum"
           },
           "dbType": {
             "type": "string",
@@ -503,7 +498,7 @@
         },
         "additionalProperties": false
       },
-      "ConnectionRecord": {
+      "ConnectionDto": {
         "type": "object",
         "properties": {
           "connectionName": {
@@ -517,7 +512,7 @@
         },
         "additionalProperties": false
       },
-      "CustomColumnInfo": {
+      "CustomColumnInfoDto": {
         "type": "object",
         "properties": {
           "connectionName": {
@@ -533,10 +528,6 @@
             "nullable": true
           },
           "columnName": {
-            "type": "string",
-            "nullable": true
-          },
-          "dataType": {
             "type": "string",
             "nullable": true
           },
@@ -583,25 +574,26 @@
         },
         "additionalProperties": false
       },
-      "MergeSqlResponse": {
-        "type": "object",
-        "properties": {
-          "originalSql": {
-            "type": "string",
-            "nullable": true
-          },
-          "newSql": {
-            "type": "string",
-            "nullable": true
-          },
-          "diffSql": {
-            "type": "string",
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
+      "DataTypeEnum": {
+        "enum": [
+          "Undefined",
+          "String",
+          "Char",
+          "Integer",
+          "Decimal",
+          "Float",
+          "Boolean",
+          "DateTime",
+          "DateTimeOffset",
+          "TimeOnly",
+          "Binary",
+          "Json",
+          "Xml",
+          "Guid"
+        ],
+        "type": "string"
       },
-      "RecordData": {
+      "ItemDataDto": {
         "type": "object",
         "properties": {
           "isEdition": {
@@ -630,8 +622,26 @@
           "dependencies": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/RecordData"
+              "$ref": "#/components/schemas/ItemDataDto"
             },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "MergeSqlResponse": {
+        "type": "object",
+        "properties": {
+          "originalSql": {
+            "type": "string",
+            "nullable": true
+          },
+          "newSql": {
+            "type": "string",
+            "nullable": true
+          },
+          "diffSql": {
+            "type": "string",
             "nullable": true
           }
         },
@@ -670,7 +680,7 @@
         },
         "additionalProperties": false
       },
-      "TableInfo": {
+      "TableInfoDto": {
         "type": "object",
         "properties": {
           "schema": {
@@ -681,9 +691,6 @@
             "type": "string",
             "nullable": true
           },
-          "isEntity": {
-            "type": "boolean"
-          },
           "isExtension": {
             "type": "boolean"
           },
@@ -691,7 +698,21 @@
             "type": "string",
             "nullable": true
           },
-          "representationColumns": {
+          "identifierColumns": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "updateableColumns": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "insertableColumns": {
             "type": "array",
             "items": {
               "type": "string"
@@ -701,7 +722,7 @@
           "columns": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/ColumnInfoRecord"
+              "$ref": "#/components/schemas/ColumnInfoDto"
             },
             "nullable": true
           }

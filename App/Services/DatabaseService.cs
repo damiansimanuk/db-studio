@@ -1,4 +1,5 @@
 using Dapper;
+using DbStudio.Database;
 using DbStudio.Dtos;
 using DbStudio.Models;
 using DiffPlex;
@@ -17,26 +18,31 @@ namespace DbStudio.Services;
 public class DatabaseService
 {
     private readonly ConcurrentDictionary<string, DatabaseContextinstance> _databaseStructure;
-    private readonly List<ConnectionRecord> _connections;
+    private readonly List<ConnectionDto> _connections;
+    private readonly ConfigDatabase _configDatabase;
 
     public DatabaseService(IConfiguration configuration)
     {
         _databaseStructure = new ConcurrentDictionary<string, DatabaseContextinstance>();
-        ApiRepository.InitCustomColumnConfigs().Wait();
+        _configDatabase = new ConfigDatabase();
+        _configDatabase.InitCustomColumnConfigs().Wait();
 
-        ApiRepository.DefineConnection("Rigel", configuration.GetConnectionString("Rigel")).Wait();
-        ApiRepository.DefineConnection("Atlasbooks", configuration.GetConnectionString("Atlasbooks")).Wait();
-        ApiRepository.DefineConnection("TNAF4PRDDB", configuration.GetConnectionString("TNAF4PRDDB")).Wait();
-        _connections = ApiRepository.GetConnections().Result;
+        _configDatabase.DefineConnection("Rigel", configuration.GetConnectionString("Rigel")!).Wait();
+        _configDatabase.DefineConnection("Atlasbooks", configuration.GetConnectionString("Atlasbooks")!).Wait();
+        _configDatabase.DefineConnection("TNAF4PRDDB", configuration.GetConnectionString("TNAF4PRDDB")!).Wait();
+        _connections = GetConnections().Result;
     }
 
     private DatabaseContextinstance GetProcessor(
         string connectionName)
     {
-        return _databaseStructure.GetOrAdd(connectionName, cn => new DatabaseContextinstance(cn, _connections.FirstOrDefault(c => c.ConnectionName == cn)?.ConnectionString ?? throw new Exception("Connection not found")));
+        var connectionString = _connections.FirstOrDefault(c => c.ConnectionName == connectionName)?.ConnectionString
+            ?? throw new Exception("Connection not found");
+
+        return _databaseStructure.GetOrAdd(connectionName, cn => new DatabaseContextinstance(_configDatabase, cn, connectionString));
     }
 
-    public TableInfo? GetTableInfo(
+    public TableInfoDto? GetTableInfo(
         string connectionName,
         string schema,
         string table)
@@ -44,14 +50,14 @@ public class DatabaseService
         return GetProcessor(connectionName).GetTableInfo(schema, table);
     }
 
-    public List<TableInfo> GetDatabaseStructure(string connectionName)
+    public List<TableInfoDto> GetDatabaseStructure(string connectionName)
     {
         return GetProcessor(connectionName).GetDatabaseStructure();
     }
 
     public (string originalSql, string newSql, string diffSql) GetMergeSql(
         string connectionName,
-        RecordData recordData)
+        ItemDataDto recordData)
     {
         var processor = GetProcessor(connectionName);
 
@@ -59,11 +65,11 @@ public class DatabaseService
         var originalData = processor.GetOriginalData(recordData);
         if (originalData != null)
         {
-            processor.GetMergeSql(originalData, originalSqlList);
+            processor.LoadMergeSql(originalData, originalSqlList);
         }
 
         var newSqlList = new List<string>();
-        processor.GetMergeSql(recordData, newSqlList);
+        processor.LoadMergeSql(recordData, newSqlList);
         var originalSql = string.Join("\n\n", originalSqlList);
         var newSql = string.Join("\n\n", newSqlList);
         var diff = "";
@@ -121,19 +127,20 @@ public class DatabaseService
 
     public async Task DefineColumnConfig(
         string connectionName,
-        CustomColumnInfo[] customColumnConfig)
+        CustomColumnInfoDto[] customColumnConfig)
     {
-        await ApiRepository.DefineColumnConfig(connectionName, customColumnConfig);
+        await _configDatabase.DefineColumnConfig(connectionName, customColumnConfig);
         _databaseStructure.TryRemove(connectionName, out _);
     }
 
-    public Task<List<ConnectionRecord>> GetConnections()
+    public async Task DefineConnection(string connectionName, string connectionString)
     {
-        return ApiRepository.GetConnections();
+        await _configDatabase.DefineConnection(connectionName, connectionString);
+        _databaseStructure.TryRemove(connectionName, out _);
     }
 
-    public Task DefineConnection(string connectionName, string connectionString)
+    public Task<List<ConnectionDto>> GetConnections()
     {
-        return ApiRepository.DefineConnection(connectionName, connectionString);
+        return _configDatabase.GetConnections();
     }
 }

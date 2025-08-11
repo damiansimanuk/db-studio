@@ -26,58 +26,36 @@ export function ShowMergeSqlDialog({
     onSave?: () => void;
 }) {
     const editorRef = useRef<MonacoDiffEditor>(null);
-    const [showDiff, setShowDiff] = useState(true);
     const [visible, setVisible] = useState(true);
-    const [highlighted, setHighlighted] = useState('');
 
-    useEffect(() => {
-        const show = !!newSql;
-        if (show) {
-            const highlightText = showDiff
-                ? Prism.highlight(
-                    diffSql,
-                    Prism.languages.diff,
-                    'diff-sql'
-                ) : Prism.highlight(
-                    newSql,
-                    Prism.languages.sql,
-                    'sql'
-                );
-            setHighlighted(highlightText);
-            setVisible(true);
-        }
-        else {
-            setHighlighted('');
-            setVisible(false);
-        }
-    }, [newSql, showDiff]);
 
-    function handleEditorMount(editor: MonacoDiffEditor, monaco: Monaco) {
-        editorRef.current = editor;
-        setupAutocomplete(monaco);
+    const handleEditorMount = (diffEditor: MonacoDiffEditor, editor: Monaco) => {
+        editorRef.current = diffEditor;
+        setupAutocomplete(editor);
     };
 
-    // function setupSQLAutocomplete(monaco: Monaco) {
-    //     type TMonaco = typeof monaco.languages.lang
-    //     monaco.languages.registerCompletionItemProvider('sql', {
-    //         provideCompletionItems: (model, position) => {
-    //             const suggestions: TMonaco.CompletionItem[] = [];
-    //             const textUntilPosition = model.getValueInRange({
-    //                 startLineNumber: position.lineNumber,
-    //                 startColumn: 1,
-    //                 endLineNumber: position.lineNumber,
-    //                 endColumn: position.column
-    //             });
+    const handleDialogHide = () => {
+        setTimeout(() => editorDispose(), 1);
+        setVisible(false);
+    };
 
-    //             return { suggestions: ["SimaPepe"] };
-    //         }
-    //     });
-    // }
+    const editorDispose = () => {
+        if (editorRef.current) {
+            editorRef.current.getOriginalEditor()?.dispose();
+            editorRef.current.getModifiedEditor()?.dispose();
+            editorRef.current.dispose();
+            editorRef.current = null;
+        }
+    }
 
+    useEffect(() => {
+        return () => editorDispose();
+    }, []);
 
-    // Autocompletado básico
     const setupAutocomplete = (editor: Monaco) => {
 
+        return;
+        
         editor.languages.registerCompletionItemProvider('sql', {
             triggerCharacters: ['.', ' '],
 
@@ -105,41 +83,16 @@ export function ShowMergeSqlDialog({
                 return { suggestions };
             }
         });
-
-        // editor.languages.registerCompletionItemProvider('sql', {
-        //     triggerCharacters: [".", " "], // Activa en "." y espacios
-        //     provideCompletionItems: (model, position) => {
-        //         const suggestions: monaco.languages.CompletionItem[] = [
-        //             {
-        //                 label: 'simpleFunction',
-        //                 kind: monaco.languages.CompletionItemKind.Function,
-        //                 insertText: 'simpleFunction(${1:param})',
-        //                 insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-        //                 range: new monaco.Range(position.lineNumber, position.column, position.lineNumber, position.column),
-        //                 detail: 'Función simple con un parámetro',
-        //             },
-        //         ];
-
-        //         const nativeSuggestions = nativeCompletionItemProvider.provideCompletionItems(model, position);
-
-        //         // Combina las sugerencias
-        //         const allSuggestions = [...suggestions, ...(nativeSuggestions || [])];
-
-
-
-        //         return { suggestions };
-        //     },
-        // });
     };
 
     return <>
         <Dialog
             visible={visible}
             header={(`Merge SQL`)}
-            onHide={() => setVisible(false)}
+            onHide={handleDialogHide}
             style={{ width: 'max(800px, 50vw)' }}
             breakpoints={{ '960px': '100vw' }}
-            modal
+            modal={true}
             maximizable
             maximized
             footer={
@@ -149,7 +102,7 @@ export function ShowMergeSqlDialog({
                         icon="pi pi-times"
                         className="p-button-text"
                         severity="danger"
-                        onClick={() => setVisible(false)} />
+                        onClick={() => handleDialogHide()} />
                     <Button
                         label="Save"
                         className="mr-0"
@@ -159,24 +112,6 @@ export function ShowMergeSqlDialog({
                 </div>
             }
         >
-            {/* <div className="w-full flex justify-content-end">
-                {showDiff ? 'asdf' : 'no'}
-                <Checkbox inputId="diff" checked={showDiff} onClick={() => setShowDiff(!showDiff)}   ></Checkbox>
-                <label  >lala</label>
-                <Button icon="pi pi-plus" label="Diff" text className="m-0 shadow-none" onClick={() => { }} />
-            </div> */}
-
-            {/* <pre className="language-diff-sql diff-highlight"
-                dangerouslySetInnerHTML={{ __html: highlighted }}
-            /> */}
-
-            {/* <Editor
-                height="300px"
-                language="sql"
-                theme="vs-dark"
-                defaultValue={diffSql}
-            /> */}
-
             <DiffEditor
                 language="sql"
                 theme="vs-dark"
@@ -186,9 +121,8 @@ export function ShowMergeSqlDialog({
                 }}
                 original={originalSql}
                 modified={newSql}
-                onMount={(editor, monaco) => setupAutocomplete(monaco)}
+                onMount={handleEditorMount}
             />
-
         </Dialog>
     </>;
 }

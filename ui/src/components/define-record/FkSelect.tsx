@@ -17,9 +17,10 @@ export const FkSelect = ({
     parentRecordData: RecordData;
 }) => {
     const [recordData, setRecordData] = useState<RecordData>(null);
-    const table = useTable(connectionName, column.schemaFK, column.tableFK, "Cache_", 10000);
+    const table = useTable(connectionName, column.schemaFK, column.tableFK, "Mem_", 10000);
 
-    const getAndUpdateItem = (itemId: any) => {
+    const getAndUpdateItem = (itemId: any, create = false) => {
+        console.log("FkSelect getAndUpdateItem", itemId)
         field.onChange(itemId);
 
         let item = parentRecordData.dependencies.find(e => e.parentColumn === column.columnName);
@@ -35,18 +36,21 @@ export const FkSelect = ({
             parentRecordData.dependencies.push(item);
         }
 
-        const record = table.getRecord(itemId);
-        Object.assign(item, { columns: record });
+        const record = table.getRecord(itemId, create);
+        if (record) {
+            Object.assign(item, { columns: record });
+        }
 
         return item;
     };
 
     const configRecord = () => {
-        let item = getAndUpdateItem(field.value);
+        let item = getAndUpdateItem(field.value, true);
         setRecordData(item);
     };
 
-    const onCloseDialog = () => {
+    const onSuccessDefineRecord = () => {
+        getAndUpdateItem(recordData.columns.__id);
         setRecordData(null);
     };
 
@@ -57,9 +61,9 @@ export const FkSelect = ({
                 schemaName={table.struct.schema}
                 tableName={table.struct.table}
                 recordData={recordData}
-                onSuccess={() => onCloseDialog()}
-                onHide={() => onCloseDialog()}
-                onError={() => onCloseDialog()}
+                onSuccess={() => onSuccessDefineRecord()}
+                onHide={() => setRecordData(null)}
+                onError={() => setRecordData(null)}
             />
 
             <div className="p-inputgroup flex-1">
@@ -72,10 +76,11 @@ export const FkSelect = ({
                     placeholder="Select a item"
                     showClear
                     valueTemplate={(item) => <FkValue
+                        key={item?.__edition ?? "0"}
                         connectionName={connectionName}
                         schemaName={column.schemaFK}
                         tableName={column.tableFK}
-                        value={field.value}
+                        value={item?.__id}
                     />}
                     itemTemplate={(item) => <>
                         <FkValue
@@ -85,7 +90,8 @@ export const FkSelect = ({
                             value={item.__id}
                         />
                     </>}
-                    appendTo={document.body} />
+                    appendTo={document.body}
+                />
                 <Button
                     icon="pi pi-pencil"
                     className="p-button-success"

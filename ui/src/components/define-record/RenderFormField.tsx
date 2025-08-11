@@ -1,30 +1,43 @@
 import { Controller, type Control } from "react-hook-form"
-import { databaseStructureStore, useTableStructure } from "../../core/api/Shared"
-import { Checkbox } from "primereact/checkbox"
+import { databaseStructureStore } from "../../core/api/Shared"
+import { TriStateCheckbox } from 'primereact/tristatecheckbox';
 import { InputText } from "primereact/inputtext"
+import { InputMask } from 'primereact/inputmask'
 import { InputNumber } from "primereact/inputnumber"
 import { Calendar } from "primereact/calendar"
 import { classNames } from "primereact/utils"
-import { useEffect } from "react"
 import type { RecordData } from "./DefineRecordDialog"
 import { FkSelect } from "./FkSelect"
+import type { components } from "../../core/api/request/swagger"
+import { boolToString, toBoolean } from "../../core/helper/Helper";
 
-const getInputType = (dataType: string) => {
-    const type = dataType?.toLowerCase() || '';
+const getInputType = (type: components["schemas"]["DataTypeEnum"]) => {
 
-    if (type.includes('int') || type.includes('decimal') || type.includes('numeric') || type.includes('float') || type.includes('double')) {
-        return 'number';
+    switch (type) {
+        case 'Integer':
+            return 'number';
+        case 'Float':
+        case 'Decimal':
+            return 'decimal-number';
+        case 'Boolean':
+            return 'checkbox';
+        case 'DateTime':
+        case 'DateTimeOffset':
+            return 'datetime';
+        case 'TimeOnly':
+            return 'time';
+        case 'Xml':
+        case 'Json':
+            return 'longText';
+        case 'Binary':
+            return 'binary'
+        case 'String':
+        case 'Char':
+        case 'Guid':
+            return 'text'
+        default:
+            return 'text'
     }
-
-    if (type.includes('date') || type.includes('time')) {
-        return 'date';
-    }
-
-    if (type.includes('bit') || type.includes('boolean')) {
-        return 'checkbox';
-    }
-
-    return 'text';
 };
 
 
@@ -48,7 +61,6 @@ const getValidationRules = (column: typeof databaseStructureStore.types.result[0
     return rules;
 };
 
-
 export const RenderFormField = ({
     connectionName,
     control,
@@ -61,9 +73,10 @@ export const RenderFormField = ({
     recordData: RecordData
 }) => {
     const fieldName = column.columnName;
-    const inputType = getInputType(column.dataType);
+    const inputType = getInputType(column.dataType ?? 'Undefined');
     const rules = getValidationRules(column);
     const isRequired = !column.isNullable;
+    const inlineLabel = inputType == 'checkbox'
 
     // Skip identity columns for new records
     if (column.isIdentity && !recordData)
@@ -78,7 +91,24 @@ export const RenderFormField = ({
                 rules={rules}
                 render={({ field, fieldState }) => (
                     <>
-                        <span className="p-float-label mt-5">
+                        {inlineLabel && <div className="flex align-items-center">
+                            {inputType === 'checkbox' &&
+                                <TriStateCheckbox
+                                    inputId={fieldName}
+                                    required={isRequired}
+                                    value={toBoolean(field.value)}
+                                    onChange={(e) => field.onChange(boolToString(e.value))}
+                                    className={classNames({ 'p-invalid': fieldState.error })}
+                                />}
+                            <label
+                                htmlFor={fieldName}
+                                className='font-medium ml-2 no-select cursor-pointer'
+                            >
+                                {column.isFK ? column.columnName.replace(/_?id$/i, "").replace(/^_?id/i, "") : column.columnName}
+                                {isRequired && <span className="ml-1">*</span>}
+                            </label>
+                        </div>}
+                        {!inlineLabel && <span className="p-float-label mt-5">
                             <div className="p-inputwrapper-filled">
                                 {column.isFK ? (
                                     <FkSelect
@@ -88,14 +118,7 @@ export const RenderFormField = ({
                                         fieldState={fieldState}
                                         parentRecordData={recordData}
                                     />
-                                ) : inputType === 'checkbox' ? (
-                                    <Checkbox
-                                        inputId={fieldName}
-                                        checked={!!field.value}
-                                        onChange={(e) => field.onChange(e.checked ? "1" : e.checked == false ? "0" : null)}
-                                        className={classNames({ 'p-invalid': fieldState.error })}
-                                    />
-                                ) : inputType === 'date' ? (
+                                ) : inputType === 'datetime' ? (
                                     <Calendar
                                         id={fieldName}
                                         value={field.value ? new Date(field.value as string) : null}
@@ -105,6 +128,10 @@ export const RenderFormField = ({
                                         panelClassName="min-w-min"
                                         appendTo={document.body}
                                         showButtonBar
+                                        dateFormat="yy-mm-dd"
+                                        hourFormat="24"
+                                        showSeconds={true}
+                                        showMillisec={true}
                                     />
                                 ) : inputType === 'number' ? (
                                     <InputNumber
@@ -113,8 +140,35 @@ export const RenderFormField = ({
                                         allowEmpty
                                         onValueChange={(e) => field.onChange(e.value ? e.value.toString() : null)}
                                         className={classNames('w-full', { 'p-invalid': fieldState.error })}
+                                        useGrouping={false}
+                                    />
+                                ) : inputType === 'decimal-number' ? (
+                                    <InputNumber
+                                        id={fieldName}
+                                        value={field.value}
+                                        allowEmpty
+                                        onValueChange={(e) => field.onChange(e.value ? e.value.toString() : null)}
+                                        className={classNames('w-full', { 'p-invalid': fieldState.error })}
                                         mode="decimal"
-                                        step={0.1}
+                                        useGrouping={false}
+                                        minFractionDigits={1}
+                                        maxFractionDigits={9}
+                                    />
+                                ) : inputType === 'time' ? (
+                                    <InputMask
+                                        id={fieldName}
+                                        value={field.value}
+                                        onChange={field.onChange}
+                                        className={classNames('w-full', { 'p-invalid': fieldState.error })}
+                                        mask="99:99:99"
+                                    />
+                                ) : inputType === 'binary' ? (
+                                    <InputText
+                                        id={fieldName}
+                                        value={field.value}
+                                        onChange={field.onChange}
+                                        className={classNames('w-full', { 'p-invalid': fieldState.error })}
+                                        type={inputType}
                                     />
                                 ) : (
                                     <InputText
@@ -133,13 +187,14 @@ export const RenderFormField = ({
                                 {column.isFK ? column.columnName.replace(/_?id$/i, "").replace(/^_?id/i, "") : column.columnName}
                                 {isRequired && <span className="ml-1">*</span>}
                             </label>
-                        </span>
-                        {fieldState.error && (
+                        </span>}
+
+                        {fieldState.error &&
                             <small className="p-error">{fieldState.error.message}</small>
-                        )}
+                        }
                     </>
                 )}
             />
-        </div>
+        </div >
     );
 };

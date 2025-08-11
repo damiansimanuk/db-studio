@@ -23,30 +23,9 @@ export function useTableStructure(connectionName: string, schema: string, table:
     }, [struct.data, schema, table, connectionName]);
 }
 
-// export function useTableStructure2(connectionName: string, tableId: number) {
-//     const struct = databaseStructureStore.use();
-
-//     useEffect(() => {
-//         struct.initialize({ query: { connectionName } })
-//     }, [connectionName]);
-
-//     return useMemo(() => {
-//         return struct.data?.find(t => t.schema === tableId);
-//     }, [struct.data, tableId]);
-// }
-
 export function useTable(connectionName: string, schema: string, table: string, prefix = "", perPage = 1000) {
     const rows = paginationTableStore.getOrCreate(`${prefix}${connectionName}:${schema}:${table}`).use();
     const struct = useTableStructure(connectionName, schema, table);
-    const [dependencies, setDependencies] = useState<typeof struct.columns>([]);
-
-    // useEffect(() => {
-    //     if (struct?.table && !visited.includes(struct.tableId)) {
-    //         visited.push(struct.tableId);
-    //         const deps = struct.columns.filter(c => c.isFK && !!c.tableFK);
-    //         setDependencies(deps);
-    //     }
-    // }, [struct?.tableId]);
 
     useEffect(() => {
         rows.initialize({ query: { connectionName, schema, table, page: 1, perPage } });
@@ -56,14 +35,14 @@ export function useTable(connectionName: string, schema: string, table: string, 
         rows.setOptions({ query: { ...rows.options.query, page, perPage } });
     }, [rows.options?.query]);
 
-    const getRecord = useCallback((itemId: any) => {
+    const getRecord = useCallback((itemId: string, create = false) => {
         let record = rows.data?.items.find(e => e.__id == itemId)
-        if (!record) {
+        if (!record && create) {
             record = {}
             const columns = Object.fromEntries(
-                struct.columns.map(column => [column.columnName, null as any])
+                struct.columns.map(column => [column.columnName, null as string])
             );
-            Object.assign(record, columns, { __id: -(rows.data?.items.length + 1) })
+            Object.assign(record, columns, { __id: `${-(rows.data?.items.length + 1)}` })
             rows.data?.items?.splice(0, 0, record)
         }
         return record
@@ -75,11 +54,10 @@ export function useTable(connectionName: string, schema: string, table: string, 
             isLoading: rows.isLoading,
             done: rows.done,
             struct,
-            dependencies,
             getRecord,
             setPage,
         };
-    }, [rows.data, rows.data?.items, rows.isLoading, rows.done, struct, dependencies]);
+    }, [rows.data, rows.data?.items, rows.isLoading, rows.done, struct]);
 }
 
 

@@ -12,3 +12,19 @@ export type DotNestedKeys<T> = (
 ) extends infer D
     ? Extract<D, string>
     : never;
+
+
+
+
+export function toBoolean(val: any): boolean | null {
+    return val == null
+        ? null
+        : val == "1" || val == 1 || val == "True" || val == "true" || val == true
+            ? true
+            : false
+}
+
+export function boolToString(val: any): string | null {
+    var bool = toBoolean(val)
+    return bool == null ? null : bool ? "1" : "0"
+}

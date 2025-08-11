@@ -1,13 +1,13 @@
- .diff-highlight.diff-highlight>.token.deleted {
-     background-color: rgba(255, 0, 0, 0.3);
-     color: unset;
- }
+.diff-highlight.diff-highlight > .token.deleted {
+  background-color: rgba(255, 0, 0, 0.3);
+  color: unset;
+}
 
- .diff-highlight.diff-highlight>.token.inserted {
-     background-color: rgba(0, 255, 0, 0.2);
-     color: unset;
- }
+.diff-highlight.diff-highlight > .token.inserted {
+  background-color: rgba(0, 255, 0, 0.2);
+  color: unset;
+}
 
- pre.diff-highlight {
-     background: unset;
- }
+pre.diff-highlight {
+  background: unset;
+}
