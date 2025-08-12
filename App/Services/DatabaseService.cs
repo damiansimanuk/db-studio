@@ -62,14 +62,16 @@ public class DatabaseService
         var processor = GetProcessor(connectionName);
 
         var originalSqlList = new List<string>();
-        var originalData = processor.GetOriginalData(recordData);
+        var originalData = processor.LoadDependencies(recordData, null, true);
         if (originalData != null)
         {
             processor.LoadMergeSql(originalData, originalSqlList);
         }
 
+        var recordWithDeps = processor.LoadDependencies(recordData, null, false) ?? recordData;
+
         var newSqlList = new List<string>();
-        processor.LoadMergeSql(recordData, newSqlList);
+        processor.LoadMergeSql(recordWithDeps, newSqlList);
         var originalSql = string.Join("\n\n", originalSqlList);
         var newSql = string.Join("\n\n", newSqlList);
         var diff = "";

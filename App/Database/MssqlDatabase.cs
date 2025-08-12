@@ -141,7 +141,7 @@ public class MssqlDatabase : IDatabase
         where {identityColumn.ColumnName} = {valueSql}
         """;
 
-        var items = (await conn.QueryAsync(query))
+        var items = (await conn.QueryAsync(query).ConfigureAwait(false))
             .Cast<IDictionary<string, object>>()
             .FirstOrDefault();
 

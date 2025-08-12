@@ -8,5 +8,16 @@ public record ItemDataDto
     public string? ParentColumn { get; set; }
     public Dictionary<string, string?> Columns { get; set; } = new();
     public List<ItemDataDto> Dependencies { get; set; } = new();
+    internal ItemDataDto? GetDependency(string fkColumn, string identityColumn, string identityValue)
+    {
+        return Dependencies.FirstOrDefault(d =>
+        {
+            if (d.ParentColumn != fkColumn)
+                return false;
+
+            var val = d.Columns.GetValueOrDefault(identityColumn);
+            return (identityValue is null && val is null) || val == identityValue;
+        });
+    }
 }
 

@@ -2,6 +2,7 @@ using DbStudio.Database;
 using DbStudio.Dtos;
 using DbStudio.Models;
 using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
 using System.Data;
 using System.Linq;
 using System.Threading.Tasks;
@@ -95,7 +96,8 @@ public class DatabaseContextinstance
             .Select(c =>
             {
                 var rowValue = recordData.Columns.GetValueOrDefault(c.ColumnName);
-                var Dep = rowValue != null ? recordData.Dependencies.FirstOrDefault(d => d.ParentColumn == c.ColumnName) : null;
+                //var Dep = rowValue != null ? recordData.Dependencies.FirstOrDefault(d => d.ParentColumn == c.ColumnName) : null;
+                var Dep = c.IsFK && rowValue != null ? recordData.GetDependency(c.ColumnName, "__id", rowValue) : null;
                 var represetnationValue = c.IsFK && Dep != null ? $"({SelectIdentity(Dep)})" : rowValue?.ToString();
 
                 return _db.GetAssignationValueSql(c, represetnationValue, prefix, isCondition);
@@ -151,19 +153,124 @@ public class DatabaseContextinstance
         return record;
     }
 
-    public void LoadMergeSql(ItemDataDto recordData, List<string> sqls)
+    public ItemDataDto? LoadDependencies(ItemDataDto recordData, string? recordId, bool useOriginalData)
     {
         var tableInfo = GetTableInfo(recordData.Schema, recordData.Table);
-        var selectColumnsSql = GetAssignationValueSql(tableInfo.Columns, recordData);
 
-        recordData.Dependencies.ForEach(d => LoadMergeSql(d, sqls));
+        if (recordId == null)
+        {
+            if (tableInfo.IdentityColumn == null)
+                return null;
 
+            recordId = recordData.Columns.GetValueOrDefault(tableInfo.IdentityColumn);
+        }
+
+        if (recordId == null)
+            return null;
+
+        var originalColumns = GetRecord(tableInfo.Schema, tableInfo.Table, recordId) ?? new();
+        if (useOriginalData && originalColumns.IsNullOrEmpty())
+            return null;
+
+        var deps = new List<ItemDataDto>();
+        foreach (var column in tableInfo.Columns.Where(c => c.IsFK))
+        {
+            var fkTableInfo = GetTableInfo(column.SchemaFK, column.TableFK);
+            var asdf = fkTableInfo.IdentityColumn;
+
+            var dep = recordData.Dependencies.FirstOrDefault(d => d.ParentColumn == column.ColumnName) ?? new ItemDataDto
+            {
+                Schema = fkTableInfo.Schema,
+                Table = fkTableInfo.Table,
+                ParentColumn = column.ColumnName,
+            };
+
+            var fkValueEdtion = recordData.Columns.GetValueOrDefault(column.ColumnName);
+            var resEditioin = LoadDependencies(dep, fkValueEdtion, useOriginalData);
+            if (resEditioin != null)
+                deps.Add(resEditioin);
+
+            var fkValueOriginal = originalColumns.GetValueOrDefault(column.ColumnName);
+            if (fkValueOriginal != null && fkValueOriginal != fkValueEdtion)
+            {
+                var resOriginal = LoadDependencies(dep, fkValueOriginal, true);
+                if (resOriginal != null)
+                    deps.Add(resOriginal with { IsEdition = false });
+            }
+        }
+
+        var record = recordData with
+        {
+            Columns = useOriginalData || recordData.Columns.IsNullOrEmpty() ? originalColumns : recordData.Columns,
+            Dependencies = deps,
+        };
+
+        return record;
+    }
+
+    public ItemDataDto? GetOriginalDataFull(ItemDataDto recordData, string? recordId = null)
+    {
+        var tableInfo = GetTableInfo(recordData.Schema, recordData.Table);
+
+        if (recordId == null)
+        {
+            if (tableInfo.IdentityColumn == null)
+                return null;
+
+            recordId = recordData.Columns.GetValueOrDefault(tableInfo.IdentityColumn);
+        }
+
+        if (recordId == null)
+            return null;
+
+        var columns = GetRecord(tableInfo.Schema, tableInfo.Table, recordId);
+        if (columns == null)
+            return null;
+
+        var deps = new List<ItemDataDto>();
+        foreach (var column in tableInfo.Columns.Where(c => c.IsFK))
+        {
+            var fkTableInfo = GetTableInfo(column.SchemaFK, column.TableFK);
+            var asdf = fkTableInfo.IdentityColumn;
+
+            var dep = recordData.Dependencies.FirstOrDefault(d => d.ParentColumn == column.ColumnName) ?? new ItemDataDto
+            {
+                IsEdition = false,
+                Schema = fkTableInfo.Schema,
+                Table = fkTableInfo.Table,
+                ParentColumn = column.ColumnName,
+            };
+
+            var fkValue = dep.IsEdition && dep.ParentColumn != null && recordData.Columns.TryGetValue(dep.ParentColumn, out var value)
+                ? value
+                : columns.GetValueOrDefault(column.ColumnName);
+
+            var res = GetOriginalDataFull(dep, fkValue);
+            if (res != null)
+                deps.Add(res);
+        }
+
+        var record = recordData with
+        {
+            Columns = columns,
+            Dependencies = deps,
+        };
+
+        return record;
+    }
+
+    public void LoadMergeSql(ItemDataDto recordData, List<string> outSqls)
+    {
         if (!recordData.IsEdition)
             return;
 
+        recordData.Dependencies.ForEach(d => LoadMergeSql(d, outSqls));
+
+        var tableInfo = GetTableInfo(recordData.Schema, recordData.Table);
+        var selectColumnsSql = GetAssignationValueSql(tableInfo.Columns, recordData);
         var sql = _db.GetMergeSql(tableInfo, selectColumnsSql);
 
-        sqls.Add(sql);
+        outSqls.Add(sql);
     }
 
     public async Task<PagedResult<Dictionary<string, string?>>> GetTableRows(
